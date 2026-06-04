@@ -1,6 +1,6 @@
 /**
- * an1me.to — Nuvio Provider v5
- * Uses axios (provided by Nuvio), async/await, proper slug generation
+ * an1me.to — Nuvio Provider v6
+ * Fix: iframe src= instead of href= for kr-video extraction
  */
 "use strict";
 
@@ -24,7 +24,7 @@ var STREAM_HEADERS = {
 function toSlug(str) {
   return str
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")  // replace all special chars with space
+    .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
@@ -33,25 +33,17 @@ function toSlug(str) {
 function getCandidateSlugs(title, originalTitle) {
   var seen = {};
   var slugs = [];
-
   function add(s) {
     if (s && !seen[s]) { seen[s] = true; slugs.push(s); }
   }
-
   add(toSlug(title));
   if (originalTitle) add(toSlug(originalTitle));
-
-  // Without subtitle after colon
   add(toSlug(title.replace(/[:\-–].+$/, "").trim()));
   if (originalTitle) add(toSlug(originalTitle.replace(/[:\-–].+$/, "").trim()));
-
-  // Strip season suffixes
   slugs.slice().forEach(function(s) {
     add(s.replace(/-(1st|2nd|3rd|[0-9]+th|second|third|fourth)-season$/, ""));
     add(s.replace(/-season-[0-9]+$/, ""));
-    add(s.replace(/-[0-9]+(st|nd|rd|th)-season$/, ""));
   });
-
   return slugs.filter(Boolean);
 }
 
@@ -71,7 +63,6 @@ async function fetchWatchPage(slug, epNum) {
     var res = await axios.get(url, { headers: FETCH_HEADERS, validateStatus: null });
     if (res.status !== 200) return null;
     var html = res.data;
-    // If page doesn't contain episode content, skip it
     if (typeof html !== "string" || html.indexOf("kr-video") === -1) return null;
     return html;
   } catch (e) {
@@ -85,7 +76,8 @@ function extractStreams(html, epNum) {
   var serverNames = ["An1 Server", "Alpha Server", "Beta Server", "Gamma Server"];
   var idx = 0;
 
-  var krRe = /href="https?:\/\/an1me\.to\/kr-video\/([A-Za-z0-9+\/=]+)[^"]*"/g;
+  // Match iframe src="https://an1me.to/kr-video/BASE64..."
+  var krRe = /src="https?:\/\/an1me\.to\/kr-video\/([A-Za-z0-9+\/=]+)/g;
   var m;
 
   while ((m = krRe.exec(html)) !== null) {
