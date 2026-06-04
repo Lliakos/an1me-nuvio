@@ -1,151 +1,26 @@
 /**
- * an1me.to — Nuvio Provider
- * Greek anime (sub/dub) from an1me.to
- * v2.0 — Direct URL construction, no search scraping needed
+ * an1me.to — Nuvio Provider v3
+ * Extracts HLS streams from an1me.to's /kr-video/ base64-encoded links
  */
 "use strict";
 
 var BASE = "https://an1me.to";
 var TMDB = "https://api.themoviedb.org/3";
 var TMDB_KEY = "4ef0d7355d9ffb5151e987764708ce96";
-
 var UA = "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36";
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-// Convert a title like "Attack on Titan" → "attack-on-titan"
 function toSlug(title) {
   return title
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")   // strip special chars
-    .replace(/\s+/g, "-")           // spaces → hyphens
-    .replace(/-+/g, "-")            // collapse multiple hyphens
-    .replace(/^-|-$/g, "");         // trim hyphens
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 }
-
-// an1me.to uses romanized Japanese names in slugs, so also try the original_name
-function getCandidateSlugs(title, originalTitle) {
-  var slugs = [];
-  slugs.push(toSlug(title));
-  if (originalTitle && originalTitle !== title) {
-    slugs.push(toSlug(originalTitle));
-  }
-  // Some common subtitle removals an1me uses
-  var cleaned = title.replace(/:\s*.+$/, "").trim(); // strip subtitle after colon
-  if (cleaned !== title) slugs.push(toSlug(cleaned));
-  return slugs.filter(function(s, i, a) { return s && a.indexOf(s) === i; });
-}
-
-// Probe a watch URL — returns the URL if the page exists (200), null otherwise
-function probeUrl(url) {
-  return fetch(url, {
-    method: "HEAD",
-    headers: { "User-Agent": UA, "Referer": BASE + "/" }
-  }).then(function(r) {
-    return r.ok ? url : null;
-  }).catch(function() { return null; });
-}
-
-// Try candidate episode URLs one by one, return first that works
-function findEpisodeUrl(slugs, epNum) {
-  var candidates = [];
-  slugs.forEach(function(slug) {
-    candidates.push(BASE + "/watch/" + slug + "-episode-" + epNum + "/");
-    // Some anime on an1me don't have -episode- suffix for ep 1 (movies)
-    if (epNum === 1) {
-      candidates.push(BASE + "/watch/" + slug + "/");
-    }
-  });
-
-  function tryNext(i) {
-    if (i >= candidates.length) return Promise.resolve(null);
-    return probeUrl(candidates[i]).then(function(result) {
-      if (result) return result;
-      return tryNext(i + 1);
-    });
-  }
-
-  return tryNext(0);
-}
-
-// Extract stream URL from the watch page HTML
-function extractFromPage(watchUrl, epNum) {
-  return fetch(watchUrl, {
-    headers: {
-      "User-Agent": UA,
-      "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
-      "Referer": BASE + "/"
-    }
-  })
-  .then(function(r) { return r.text(); })
-  .then(function(html) {
-    var streams = [];
-
-    // 1. HLS m3u8
-    var hlsRe = /["'](https?:\/\/[^"']+\.m3u8[^"']{0,200})["']/g;
-    var m;
-    while ((m = hlsRe.exec(html)) !== null) {
-      streams.push({
-        name: "An1me.to",
-        title: "Επεισόδιο " + epNum + " [HLS]",
-        url: m[1],
-        quality: "Auto"
-      });
-      break; // first match is enough
-    }
-
-    // 2. Direct MP4
-    if (streams.length === 0) {
-      var mp4Re = /["'](https?:\/\/[^"']+\.mp4[^"']{0,200})["']/g;
-      while ((m = mp4Re.exec(html)) !== null) {
-        streams.push({
-          name: "An1me.to",
-          title: "Επεισόδιο " + epNum + " [MP4]",
-          url: m[1],
-          quality: "Auto"
-        });
-        break;
-      }
-    }
-
-    // 3. Iframe embed player
-    if (streams.length === 0) {
-      var iframeRe = /<iframe[^>]+src=["']([^"']+)["'][^>]*>/gi;
-      while ((m = iframeRe.exec(html)) !== null) {
-        var src = m[1];
-        if (src && src.indexOf("facebook") === -1 && src.indexOf("twitter") === -1
-            && src.indexOf("google") === -1) {
-          if (src.indexOf("//") === 0) src = "https:" + src;
-          streams.push({
-            name: "An1me.to",
-            title: "Επεισόδιο " + epNum + " [Player]",
-            url: src,
-            quality: "Auto"
-          });
-          break;
-        }
-      }
-    }
-
-    // 4. Fallback: give them the watch page itself as external URL
-    if (streams.length === 0) {
-      streams.push({
-        name: "An1me.to",
-        title: "Επεισόδιο " + epNum + " — Άνοιγμα στο an1me.to",
-        url: watchUrl,
-        quality: "External"
-      });
-    }
-
-    return streams;
-  });
-}
-
-// ── TMDB lookup ───────────────────────────────────────────────────────────────
 
 function getTmdbInfo(tmdbId, mediaType) {
   var url = TMDB + "/" + (mediaType === "movie" ? "movie" : "tv") + "/" + tmdbId
-    + "?api_key=" + TMDB_KEY + "&append_to_response=external_ids";
+    + "?api_key=" + TMDB_KEY;
   return fetch(url)
     .then(function(r) { return r.json(); })
     .then(function(d) {
@@ -156,32 +31,80 @@ function getTmdbInfo(tmdbId, mediaType) {
     });
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
+function fetchWatchPage(slug, epNum) {
+  var url = BASE + "/watch/" + slug + "-episode-" + epNum + "/";
+  return fetch(url, {
+    headers: {
+      "User-Agent": UA,
+      "Accept": "text/html,*/*;q=0.8",
+      "Referer": BASE + "/"
+    }
+  }).then(function(r) {
+    if (!r.ok) return null;
+    return r.text();
+  }).catch(function() { return null; });
+}
+
+function extractStreams(html, epNum) {
+  if (!html) return [];
+  var streams = [];
+
+  // Match /kr-video/BASE64 links — these decode to direct m3u8 URLs
+  var krRe = /href="(https?:\/\/an1me\.to\/kr-video\/([A-Za-z0-9+/=]+))[^"]*"/g;
+  var m;
+  var seen = {};
+  while ((m = krRe.exec(html)) !== null) {
+    var b64 = m[2];
+    if (seen[b64]) continue;
+    seen[b64] = true;
+    try {
+      var decoded = atob(b64);
+      if (decoded && decoded.indexOf("http") === 0) {
+        var label = streams.length === 0 ? "An1 Server" : "Alpha Server";
+        streams.push({
+          name: "An1me.to",
+          title: "Επεισόδιο " + epNum + " · " + label + " [GR]",
+          url: decoded,
+          quality: "Auto"
+        });
+      }
+    } catch (e) { /* skip bad base64 */ }
+  }
+
+  return streams;
+}
 
 function getStreams(tmdbId, mediaType, season, episode) {
   var epNum = episode ? parseInt(episode, 10) : 1;
-  console.log("[An1me] " + mediaType + " " + tmdbId + " S" + season + "E" + epNum);
+  console.log("[An1me] " + mediaType + " tmdb:" + tmdbId + " S" + season + "E" + epNum);
 
   return getTmdbInfo(tmdbId, mediaType)
     .then(function(info) {
-      if (!info.title) {
-        console.log("[An1me] No title from TMDB");
-        return [];
-      }
-      console.log("[An1me] Title: " + info.title + " / " + info.originalTitle);
+      if (!info.title) return [];
 
-      var slugs = getCandidateSlugs(info.title, info.originalTitle);
+      var slugs = [toSlug(info.title)];
+      if (info.originalTitle && info.originalTitle !== info.title) {
+        slugs.push(toSlug(info.originalTitle));
+      }
+      // Also try without subtitle (e.g. "Naruto: Shippuden" → "naruto")
+      var noSuffix = toSlug(info.title.replace(/[:\-–].+$/, "").trim());
+      if (noSuffix && slugs.indexOf(noSuffix) === -1) slugs.push(noSuffix);
+
       console.log("[An1me] Trying slugs: " + slugs.join(", "));
 
-      return findEpisodeUrl(slugs, epNum)
-        .then(function(watchUrl) {
-          if (!watchUrl) {
-            console.log("[An1me] No episode URL found for ep " + epNum);
-            return [];
-          }
-          console.log("[An1me] Found: " + watchUrl);
-          return extractFromPage(watchUrl, epNum);
-        });
+      function trySlug(i) {
+        if (i >= slugs.length) return Promise.resolve([]);
+        return fetchWatchPage(slugs[i], epNum)
+          .then(function(html) {
+            if (!html) return trySlug(i + 1);
+            var streams = extractStreams(html, epNum);
+            if (streams.length === 0) return trySlug(i + 1);
+            console.log("[An1me] Got " + streams.length + " stream(s) from slug: " + slugs[i]);
+            return streams;
+          });
+      }
+
+      return trySlug(0);
     })
     .catch(function(err) {
       console.error("[An1me] Error: " + err.message);
