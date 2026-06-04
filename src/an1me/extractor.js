@@ -7,20 +7,32 @@ async function extractStreams(title, episode) {
     const $ = cheerio.load(html);
     const streams = [];
 
+    // Log if we found anything at all
+    console.log("Searching for embeds...");
+    
     $('[data-embed-id]').each((i, el) => {
-        const data = $(el).attr('data-embed-id');
-        const [name, iframe] = data.split(':');
-        const urlMatch = atob(iframe).match(/src="([^"]+)"/);
-        
-        if (urlMatch) {
-            streams.push({
-                name: "An1me",
-                title: atob(name),
-                url: urlMatch[1],
-                headers: HEADERS
-            });
+        try {
+            const data = $(el).attr('data-embed-id');
+            const [name, iframe] = data.split(':');
+            
+            // Use atob safely
+            const decodedIframe = atob(iframe);
+            const urlMatch = decodedIframe.match(/src="([^"]+)"/);
+            
+            if (urlMatch) {
+                streams.push({
+                    name: "An1me",
+                    title: atob(name),
+                    url: urlMatch[1],
+                    headers: HEADERS
+                });
+            }
+        } catch (e) {
+            console.log("Error parsing embed:", e.message);
         }
     });
+
+    console.log(`Found ${streams.length} streams.`);
     return streams;
 }
 
