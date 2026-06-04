@@ -27,26 +27,71 @@ var __async = (__this, __arguments, generator) => {
 var require_http = __commonJS({
   "src/an1me/http.js"(exports2, module2) {
     var axios = require("axios");
-    function getPage2(tmdbId, mediaType, season, episode) {
+    var HEADERS = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Referer": "https://an1me.to/"
+    };
+    function fetchText(url) {
       return __async(this, null, function* () {
-        const url = "https://an1me.to/watch/naruto-episode-1/";
-        const res = yield axios.get(url, { headers: { "Referer": "https://an1me.to/" } });
-        return res.data;
+        try {
+          const response = yield axios.get(url, { headers: HEADERS });
+          return response.data;
+        } catch (error) {
+          throw new Error(`Failed to fetch ${url}: ${error.message}`);
+        }
       });
     }
-    module2.exports = { getPage: getPage2 };
+    module2.exports = { fetchText, HEADERS };
+  }
+});
+
+// src/an1me/extractor.js
+var require_extractor = __commonJS({
+  "src/an1me/extractor.js"(exports2, module2) {
+    var cheerio = require("cheerio-without-node-native");
+    var { fetchText, HEADERS } = require_http();
+    function extractStreams2(tmdbId, mediaType, season, episode) {
+      return __async(this, null, function* () {
+        const title = "naruto";
+        const url = `https://an1me.to/watch/${title}-episode-${episode}/`;
+        const html = yield fetchText(url);
+        const $ = cheerio.load(html);
+        const streams = [];
+        $("[data-embed-id]").each((i, el) => {
+          try {
+            const data = $(el).attr("data-embed-id");
+            const parts = data.split(":");
+            const serverName = atob(parts[0]);
+            const iframeHtml = atob(parts[1]);
+            const urlMatch = iframeHtml.match(/src="([^"]+)"/);
+            if (urlMatch) {
+              streams.push({
+                name: "An1me",
+                title: serverName,
+                url: urlMatch[1].replace(/&amp;/g, "&"),
+                quality: "1080p",
+                headers: HEADERS
+              });
+            }
+          } catch (e) {
+          }
+        });
+        return streams;
+      });
+    }
+    module2.exports = { extractStreams: extractStreams2 };
   }
 });
 
 // src/an1me/index.js
-var { getPage } = require_http();
+var { extractStreams } = require_extractor();
 function getStreams(tmdbId, mediaType, season, episode) {
   return __async(this, null, function* () {
     try {
-      const html = yield getPage(tmdbId, mediaType, season, episode);
-      return [{ title: "Fetched Length: " + html.length, url: "https://test.com" }];
-    } catch (e) {
-      return [{ title: "Error: " + e.message, url: "https://test.com" }];
+      return yield extractStreams(tmdbId, mediaType, season, episode);
+    } catch (error) {
+      console.error("Provider Error:", error.message);
+      return [];
     }
   });
 }
