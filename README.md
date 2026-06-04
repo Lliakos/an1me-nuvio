@@ -31,4 +31,3 @@ an1me-nuvio/
 
 No build step required — the provider is already written with Promise chains
 for full compatibility with Nuvio's Hermes JavaScript engine.
-"# an1me-nuvio" 
