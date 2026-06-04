@@ -1,6 +1,6 @@
 /**
- * an1me.to — Nuvio Provider v8
- * Robust fetch, handles axios quirks in React Native
+ * an1me.to — Nuvio Provider v9
+ * Pure Promise chains — no async/await, no build step required
  */
 "use strict";
 
@@ -47,26 +47,26 @@ function getCandidateSlugs(title, originalTitle) {
   return slugs.filter(Boolean);
 }
 
-async function getTmdbInfo(tmdbId, mediaType) {
+function getTmdbInfo(tmdbId, mediaType) {
   var url = TMDB + "/" + (mediaType === "movie" ? "movie" : "tv") + "/" + tmdbId + "?api_key=" + TMDB_KEY;
-  var res = await axios.get(url);
-  var d = res.data;
-  return {
-    title: d.title || d.name || "",
-    originalTitle: d.original_title || d.original_name || ""
-  };
+  return axios.get(url).then(function(res) {
+    var d = res.data;
+    return {
+      title: d.title || d.name || "",
+      originalTitle: d.original_title || d.original_name || ""
+    };
+  });
 }
 
-async function fetchWatchPage(slug, epNum) {
+function fetchWatchPage(slug, epNum) {
   var url = BASE + "/watch/" + slug + "-episode-" + epNum + "/";
-  try {
-    var res = await axios.get(url, { headers: FETCH_HEADERS });
-    var html = typeof res.data === "string" ? res.data : JSON.stringify(res.data);
-    if (html.indexOf("data-embed-id") === -1) return null;
-    return html;
-  } catch (e) {
-    return null;
-  }
+  return axios.get(url, { headers: FETCH_HEADERS })
+    .then(function(res) {
+      var html = typeof res.data === "string" ? res.data : JSON.stringify(res.data);
+      if (html.indexOf("data-embed-id") === -1) return null;
+      return html;
+    })
+    .catch(function() { return null; });
 }
 
 function extractStreams(html, epNum) {
@@ -105,35 +105,42 @@ function extractStreams(html, epNum) {
   return streams;
 }
 
-async function getStreams(tmdbId, mediaType, season, episode) {
+function trySlugs(slugs, epNum, index) {
+  if (index >= slugs.length) {
+    console.log("[An1me] No streams found");
+    return Promise.resolve([]);
+  }
+  return fetchWatchPage(slugs[index], epNum).then(function(html) {
+    if (!html) {
+      console.log("[An1me] No page: " + slugs[index]);
+      return trySlugs(slugs, epNum, index + 1);
+    }
+    var streams = extractStreams(html, epNum);
+    if (streams.length === 0) {
+      console.log("[An1me] Page found, no streams: " + slugs[index]);
+      return trySlugs(slugs, epNum, index + 1);
+    }
+    console.log("[An1me] " + streams.length + " stream(s) via: " + slugs[index]);
+    return streams;
+  });
+}
+
+function getStreams(tmdbId, mediaType, season, episode) {
   var epNum = episode ? parseInt(episode, 10) : 1;
   console.log("[An1me] " + mediaType + " " + tmdbId + " S" + season + "E" + epNum);
 
-  try {
-    var info = await getTmdbInfo(tmdbId, mediaType);
-    if (!info.title) { console.log("[An1me] No TMDB title"); return []; }
-    console.log("[An1me] Title: " + info.title + " / " + info.originalTitle);
-
-    var slugs = getCandidateSlugs(info.title, info.originalTitle);
-    console.log("[An1me] Slugs: " + slugs.join(", "));
-
-    for (var i = 0; i < slugs.length; i++) {
-      var html = await fetchWatchPage(slugs[i], epNum);
-      if (!html) { console.log("[An1me] No page for: " + slugs[i]); continue; }
-      var streams = extractStreams(html, epNum);
-      if (streams.length > 0) {
-        console.log("[An1me] " + streams.length + " stream(s) via: " + slugs[i]);
-        return streams;
-      }
-      console.log("[An1me] Page found but no streams for: " + slugs[i]);
-    }
-
-    console.log("[An1me] No streams found");
-    return [];
-  } catch (err) {
-    console.error("[An1me] Fatal: " + err.message);
-    return [];
-  }
+  return getTmdbInfo(tmdbId, mediaType)
+    .then(function(info) {
+      if (!info.title) { console.log("[An1me] No TMDB title"); return []; }
+      console.log("[An1me] Title: " + info.title + " / " + info.originalTitle);
+      var slugs = getCandidateSlugs(info.title, info.originalTitle);
+      console.log("[An1me] Slugs: " + slugs.join(", "));
+      return trySlugs(slugs, epNum, 0);
+    })
+    .catch(function(err) {
+      console.error("[An1me] Fatal: " + err.message);
+      return [];
+    });
 }
 
 module.exports = { getStreams: getStreams };
