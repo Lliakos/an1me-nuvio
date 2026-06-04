@@ -1,6 +1,6 @@
 /**
- * an1me.to — Nuvio Provider v7
- * Correctly extracts streams from data-embed-id attributes (double base64)
+ * an1me.to — Nuvio Provider v8
+ * Robust fetch, handles axios quirks in React Native
  */
 "use strict";
 
@@ -60,10 +60,9 @@ async function getTmdbInfo(tmdbId, mediaType) {
 async function fetchWatchPage(slug, epNum) {
   var url = BASE + "/watch/" + slug + "-episode-" + epNum + "/";
   try {
-    var res = await axios.get(url, { headers: FETCH_HEADERS, validateStatus: null });
-    if (res.status !== 200) return null;
-    var html = res.data;
-    if (typeof html !== "string" || html.indexOf("data-embed-id") === -1) return null;
+    var res = await axios.get(url, { headers: FETCH_HEADERS });
+    var html = typeof res.data === "string" ? res.data : JSON.stringify(res.data);
+    if (html.indexOf("data-embed-id") === -1) return null;
     return html;
   } catch (e) {
     return null;
@@ -73,33 +72,29 @@ async function fetchWatchPage(slug, epNum) {
 function extractStreams(html, epNum) {
   var streams = [];
   var seen = {};
-
-  // Each server is stored as: data-embed-id="BASE64(serverName):BASE64(iframeHTML)"
   var embedRe = /data-embed-id="([A-Za-z0-9+\/=]+):([A-Za-z0-9+\/=]+)"/g;
   var m;
 
   while ((m = embedRe.exec(html)) !== null) {
     try {
-      var serverName = atob(m[1]).replace(/sub$|dub$/i, "").trim();
+      var rawName = atob(m[1]);
+      var serverName = rawName.replace(/sub$/i, "").replace(/dub$/i, "").trim();
+      var isDub = /dub$/i.test(rawName);
       var iframeHtml = atob(m[2]);
 
-      // Extract the kr-video URL from the decoded iframe HTML
-      var srcMatch = iframeHtml.match(/src="(https:\/\/an1me\.to\/kr-video\/([A-Za-z0-9+\/=]+))/);
+      var srcMatch = iframeHtml.match(/src="https?:\/\/an1me\.to\/kr-video\/([A-Za-z0-9+\/=]+)/);
       if (!srcMatch) continue;
 
-      var b64stream = srcMatch[2];
+      var b64stream = srcMatch[1];
       if (seen[b64stream]) continue;
       seen[b64stream] = true;
 
       var streamUrl = atob(b64stream);
       if (!streamUrl || streamUrl.indexOf("http") !== 0) continue;
 
-      var isDub = /dub/i.test(atob(m[1]));
-      var label = serverName + (isDub ? " [GR DUB]" : " [GR SUB]");
-
       streams.push({
         name: "An1me.to",
-        title: "Επεισόδιο " + epNum + " · " + label,
+        title: "Επεισόδιο " + epNum + " · " + serverName + (isDub ? " [DUB]" : " [SUB]"),
         url: streamUrl,
         quality: streamUrl.indexOf(".mp4") !== -1 ? "MP4" : "HLS",
         headers: STREAM_HEADERS
@@ -117,25 +112,26 @@ async function getStreams(tmdbId, mediaType, season, episode) {
   try {
     var info = await getTmdbInfo(tmdbId, mediaType);
     if (!info.title) { console.log("[An1me] No TMDB title"); return []; }
-    console.log("[An1me] Title: " + info.title + " | Original: " + info.originalTitle);
+    console.log("[An1me] Title: " + info.title + " / " + info.originalTitle);
 
     var slugs = getCandidateSlugs(info.title, info.originalTitle);
-    console.log("[An1me] Trying: " + slugs.join(", "));
+    console.log("[An1me] Slugs: " + slugs.join(", "));
 
     for (var i = 0; i < slugs.length; i++) {
       var html = await fetchWatchPage(slugs[i], epNum);
-      if (!html) continue;
+      if (!html) { console.log("[An1me] No page for: " + slugs[i]); continue; }
       var streams = extractStreams(html, epNum);
       if (streams.length > 0) {
-        console.log("[An1me] Found " + streams.length + " stream(s) via: " + slugs[i]);
+        console.log("[An1me] " + streams.length + " stream(s) via: " + slugs[i]);
         return streams;
       }
+      console.log("[An1me] Page found but no streams for: " + slugs[i]);
     }
 
     console.log("[An1me] No streams found");
     return [];
   } catch (err) {
-    console.error("[An1me] Error: " + err.message);
+    console.error("[An1me] Fatal: " + err.message);
     return [];
   }
 }
