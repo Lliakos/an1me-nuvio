@@ -29,11 +29,8 @@ var require_http = __commonJS({
     var axios = require("axios");
     function getPage2(tmdbId, mediaType, season, episode) {
       return __async(this, null, function* () {
-        const title = "naruto";
-        const url = `https://an1me.to/watch/${title}-episode-${episode}/`;
-        const res = yield axios.get(url, {
-          headers: { "Referer": "https://an1me.to/" }
-        });
+        const url = "https://an1me.to/watch/naruto-episode-1/";
+        const res = yield axios.get(url, { headers: { "Referer": "https://an1me.to/" } });
         return res.data;
       });
     }
@@ -41,50 +38,15 @@ var require_http = __commonJS({
   }
 });
 
-// src/an1me/extractor.js
-var require_extractor = __commonJS({
-  "src/an1me/extractor.js"(exports2, module2) {
-    var cheerio = require("cheerio-without-node-native");
-    function decodeBase64(str) {
-      return atob(str);
-    }
-    function extract2(html) {
-      const $ = cheerio.load(html);
-      const streams = [];
-      $("[data-embed-id]").each((i, el) => {
-        try {
-          const data = $(el).attr("data-embed-id");
-          const parts = data.split(":");
-          const serverName = decodeBase64(parts[0]);
-          const iframeHtml = decodeBase64(parts[1]);
-          const urlMatch = iframeHtml.match(/src="([^"]+)"/);
-          if (urlMatch) {
-            streams.push({
-              title: serverName,
-              url: urlMatch[1].replace(/&amp;/g, "&"),
-              headers: { "Referer": "https://an1me.to/", "Origin": "https://an1me.to" }
-            });
-          }
-        } catch (e) {
-        }
-      });
-      return streams;
-    }
-    module2.exports = { extract: extract2 };
-  }
-});
-
 // src/an1me/index.js
 var { getPage } = require_http();
-var { extract } = require_extractor();
 function getStreams(tmdbId, mediaType, season, episode) {
   return __async(this, null, function* () {
     try {
       const html = yield getPage(tmdbId, mediaType, season, episode);
-      return extract(html);
+      return [{ title: "Fetched Length: " + html.length, url: "https://test.com" }];
     } catch (e) {
-      console.error("Provider Error:", e);
-      return [];
+      return [{ title: "Error: " + e.message, url: "https://test.com" }];
     }
   });
 }

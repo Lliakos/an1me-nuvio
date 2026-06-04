@@ -1,14 +1,12 @@
 const { getPage } = require('./http.js');
-const { extract } = require('./extractor.js');
 
 async function getStreams(tmdbId, mediaType, season, episode) {
   try {
     const html = await getPage(tmdbId, mediaType, season, episode);
-    // This now returns the real streams from your extractor
-    return extract(html); 
+    // Return a dummy object just to prove the HTML fetched successfully
+    return [{ title: "Fetched Length: " + html.length, url: "https://test.com" }];
   } catch (e) {
-    console.error("Provider Error:", e);
-    return [];
+    return [{ title: "Error: " + e.message, url: "https://test.com" }];
   }
 }
 
