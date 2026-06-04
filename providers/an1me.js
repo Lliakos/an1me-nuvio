@@ -45,6 +45,9 @@ var require_http = __commonJS({
 var require_extractor = __commonJS({
   "src/an1me/extractor.js"(exports2, module2) {
     var cheerio = require("cheerio-without-node-native");
+    function decodeBase64(str) {
+      return atob(str);
+    }
     function extract2(html) {
       const $ = cheerio.load(html);
       const streams = [];
@@ -52,8 +55,8 @@ var require_extractor = __commonJS({
         try {
           const data = $(el).attr("data-embed-id");
           const parts = data.split(":");
-          const serverName = Buffer.from(parts[0], "base64").toString("utf8");
-          const iframeHtml = Buffer.from(parts[1], "base64").toString("utf8");
+          const serverName = decodeBase64(parts[0]);
+          const iframeHtml = decodeBase64(parts[1]);
           const urlMatch = iframeHtml.match(/src="([^"]+)"/);
           if (urlMatch) {
             streams.push({

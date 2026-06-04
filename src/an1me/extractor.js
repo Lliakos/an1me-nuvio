@@ -1,5 +1,10 @@
 const cheerio = require('cheerio-without-node-native');
 
+function decodeBase64(str) {
+  // Simple, universal base64 decoder
+  return atob(str); 
+}
+
 function extract(html) {
   const $ = cheerio.load(html);
   const streams = [];
@@ -8,9 +13,10 @@ function extract(html) {
     try {
       const data = $(el).attr('data-embed-id');
       const parts = data.split(':');
-      // Using Buffer to decode Base64 (Nuvio supports Buffer)
-      const serverName = Buffer.from(parts[0], 'base64').toString('utf8');
-      const iframeHtml = Buffer.from(parts[1], 'base64').toString('utf8');
+      
+      // Use the universal decoder
+      const serverName = decodeBase64(parts[0]);
+      const iframeHtml = decodeBase64(parts[1]);
       
       const urlMatch = iframeHtml.match(/src="([^"]+)"/);
       if (urlMatch) {
@@ -20,7 +26,7 @@ function extract(html) {
           headers: { "Referer": "https://an1me.to/", "Origin": "https://an1me.to" }
         });
       }
-    } catch (e) { /* ignore errors */ }
+    } catch (e) { /* ignore */ }
   });
   return streams;
 }
