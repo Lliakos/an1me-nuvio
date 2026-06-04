@@ -1,0 +1,26 @@
+{
+  "name": "an1me-nuvio",
+  "version": "1.0.0",
+  "description": "Greek anime provider for the [Nuvio](https://nuvio.app) app, scraping content from [an1me.to](https://an1me.to).",
+  "main": "build.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lliakos/an1me-nuvio.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Lliakos/an1me-nuvio/issues"
+  },
+  "homepage": "https://github.com/Lliakos/an1me-nuvio#readme",
+  "dependencies": {
+    "axios": "^1.17.0",
+    "cheerio-without-node-native": "^0.20.2",
+    "esbuild": "^0.28.0"
+  }
+}
