@@ -1,6 +1,6 @@
 /**
- * an1me.to — Nuvio Provider v6
- * Fix: iframe src= instead of href= for kr-video extraction
+ * an1me.to — Nuvio Provider v7
+ * Correctly extracts streams from data-embed-id attributes (double base64)
  */
 "use strict";
 
@@ -63,7 +63,7 @@ async function fetchWatchPage(slug, epNum) {
     var res = await axios.get(url, { headers: FETCH_HEADERS, validateStatus: null });
     if (res.status !== 200) return null;
     var html = res.data;
-    if (typeof html !== "string" || html.indexOf("kr-video") === -1) return null;
+    if (typeof html !== "string" || html.indexOf("data-embed-id") === -1) return null;
     return html;
   } catch (e) {
     return null;
@@ -73,30 +73,37 @@ async function fetchWatchPage(slug, epNum) {
 function extractStreams(html, epNum) {
   var streams = [];
   var seen = {};
-  var serverNames = ["An1 Server", "Alpha Server", "Beta Server", "Gamma Server"];
-  var idx = 0;
 
-  // Match iframe src="https://an1me.to/kr-video/BASE64..."
-  var krRe = /src="https?:\/\/an1me\.to\/kr-video\/([A-Za-z0-9+\/=]+)/g;
+  // Each server is stored as: data-embed-id="BASE64(serverName):BASE64(iframeHTML)"
+  var embedRe = /data-embed-id="([A-Za-z0-9+\/=]+):([A-Za-z0-9+\/=]+)"/g;
   var m;
 
-  while ((m = krRe.exec(html)) !== null) {
-    var b64 = m[1];
-    if (seen[b64]) continue;
-    seen[b64] = true;
+  while ((m = embedRe.exec(html)) !== null) {
     try {
-      var decoded = atob(b64);
-      if (decoded && decoded.indexOf("http") === 0) {
-        var label = serverNames[idx] || ("Server " + (idx + 1));
-        streams.push({
-          name: "An1me.to",
-          title: "Επεισόδιο " + epNum + " · " + label + " [GR]",
-          url: decoded,
-          quality: decoded.indexOf(".mp4") !== -1 ? "MP4" : "HLS",
-          headers: STREAM_HEADERS
-        });
-        idx++;
-      }
+      var serverName = atob(m[1]).replace(/sub$|dub$/i, "").trim();
+      var iframeHtml = atob(m[2]);
+
+      // Extract the kr-video URL from the decoded iframe HTML
+      var srcMatch = iframeHtml.match(/src="(https:\/\/an1me\.to\/kr-video\/([A-Za-z0-9+\/=]+))/);
+      if (!srcMatch) continue;
+
+      var b64stream = srcMatch[2];
+      if (seen[b64stream]) continue;
+      seen[b64stream] = true;
+
+      var streamUrl = atob(b64stream);
+      if (!streamUrl || streamUrl.indexOf("http") !== 0) continue;
+
+      var isDub = /dub/i.test(atob(m[1]));
+      var label = serverName + (isDub ? " [GR DUB]" : " [GR SUB]");
+
+      streams.push({
+        name: "An1me.to",
+        title: "Επεισόδιο " + epNum + " · " + label,
+        url: streamUrl,
+        quality: streamUrl.indexOf(".mp4") !== -1 ? "MP4" : "HLS",
+        headers: STREAM_HEADERS
+      });
     } catch (e) {}
   }
 
@@ -120,7 +127,7 @@ async function getStreams(tmdbId, mediaType, season, episode) {
       if (!html) continue;
       var streams = extractStreams(html, epNum);
       if (streams.length > 0) {
-        console.log("[An1me] Found " + streams.length + " stream(s) with slug: " + slugs[i]);
+        console.log("[An1me] Found " + streams.length + " stream(s) via: " + slugs[i]);
         return streams;
       }
     }
