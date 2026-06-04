@@ -1,0 +1,18 @@
+[
+  {
+    "id": "an1me",
+    "name": "An1me.to",
+    "description": "Ελληνικά anime με υπότιτλους και μεταγλωττισμένα από το an1me.to",
+    "version": "1.0.0",
+    "author": "an1me-nuvio",
+    "supportedTypes": ["tv", "movie"],
+    "filename": "providers/an1me.js",
+    "enabled": true,
+    "logo": "https://an1me.to/wp-content/uploads/2024/12/logo_copy.png",
+    "contentLanguage": ["el", "ja"],
+    "formats": ["m3u8", "mp4"],
+    "limited": false,
+    "disabledPlatforms": [],
+    "supportsExternalPlayer": true
+  }
+]
