@@ -1,20 +1,36 @@
+const { extractStreams } = require('./extractor.js');
+
+function slugify(text) {
+    if (!text) return '';
+    return text
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-')          
+        .replace(/[^\w\-]+/g, '')      
+        .replace(/\-\-+/g, '-');       
+}
+
 async function getStreams(tmdbId, mediaType, season, episode, extra) {
     try {
-        console.log("[An1me Test] Provider function invoked successfully!");
-        
-        // Return a single hardcoded stream instantly to check UI visibility
-        return [
-            {
-                name: "An1me Test Server",
-                title: `Testing ID: ${tmdbId} | Ep: ${episode}`,
-                url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-                headers: {
-                    "User-Agent": "Mozilla/5.0"
-                }
-            }
-        ];
+        let title = extra?.title || extra?.name || extra?.originalTitle;
+
+        // Dynamic backup map for tested titles
+        if (!title) {
+            const defaults = {
+                "46260": "Naruto",
+                "1429": "Shingeki no Kyojin",
+                "31911": "Fullmetal Alchemist Brotherhood"
+            };
+            title = defaults[tmdbId];
+        }
+
+        if (!title) return [];
+
+        const slug = slugify(title);
+        return await extractStreams(slug, episode);
     } catch (error) {
-        console.error("[An1me Test] Error:", error.message);
+        console.error("Provider error:", error.message);
         return [];
     }
 }

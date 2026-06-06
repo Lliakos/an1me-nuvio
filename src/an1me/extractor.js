@@ -1,8 +1,27 @@
 const cheerio = require('cheerio-without-node-native');
 const { fetchText, HEADERS } = require('./http.js');
 
-function decodeBase64(str) {
-    return Buffer.from(str, 'base64').toString('utf-8');
+// Custom safe base64 decoder compatible with Nuvio's internal engine
+function safeAtob(input) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+    let str = input.replace(/=+$/, '');
+    let output = '';
+
+    if (str.length % 4 === 1) {
+        throw new Error("'atob' failed: The string to be decoded is not correctly encoded.");
+    }
+
+    for (let bc = 0, bs = 0, idx = 0; idx < str.length; idx++) {
+        const char = str.charAt(idx);
+        const p = chars.indexOf(char);
+        if (p === -1) continue;
+
+        bs = bc % 4 ? bs * 64 + p : p;
+        if (bc++ % 4) {
+            output += String.fromCharCode(255 & (bs >> ((-2 * bc) & 6)));
+        }
+    }
+    return output;
 }
 
 async function extractGooglePhotosMp4(googlePhotosUrl) {
@@ -38,8 +57,8 @@ async function extractStreams(title, episode) {
             const data = $(el).attr('data-embed-id');
             const [nameB64, iframeB64] = data.split(':');
             
-            const serverName = decodeBase64(nameB64).trim();
-            const decodedIframe = decodeBase64(iframeB64);
+            const serverName = safeAtob(nameB64).trim();
+            const decodedIframe = safeAtob(iframeB64);
             const urlMatch = decodedIframe.match(/src="([^"]+)"/);
             
             if (urlMatch) {
@@ -49,22 +68,15 @@ async function extractStreams(title, episode) {
                 let finalPlayableUrl = embedUrl;
 
                 if (krVideoMatch) {
-                    // 1. Decode the hidden link
-                    const decodedLink = decodeBase64(krVideoMatch[1]);
+                    const decodedLink = safeAtob(krVideoMatch[1]);
                     
-                    // 2. ROUTING LOGIC: Determine what type of link we found
                     if (decodedLink.includes('photos.google.com')) {
-                        // It's Google Photos, we must scrape it further
                         console.log(`[${serverName}] Found Google Photos link, scraping...`);
                         finalPlayableUrl = await extractGooglePhotosMp4(decodedLink);
-                        
                     } else if (decodedLink.includes('.m3u8') || decodedLink.includes('.mp4')) {
-                        // It's a direct CDN stream (like An1 Server), pass it straight through
                         console.log(`[${serverName}] Found direct stream link.`);
                         finalPlayableUrl = decodedLink;
-                        
                     } else {
-                        // Fallback for unknown link types
                         console.log(`[${serverName}] Found unknown link type.`);
                         finalPlayableUrl = decodedLink;
                     }
