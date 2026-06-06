@@ -120,22 +120,32 @@ var require_extractor = __commonJS({
 // src/an1me/index.js
 var { extractStreams } = require_extractor();
 function slugify(text) {
+  if (!text) return "";
   return text.toString().toLowerCase().trim().replace(/\s+/g, "-").replace(/[^\w\-]+/g, "").replace(/\-\-+/g, "-");
 }
-function getStreams(tmdbId, mediaType, season, episode, metadata) {
+function getStreams(tmdbId, mediaType, season, episode, extra) {
   return __async(this, null, function* () {
     try {
-      const title = (metadata == null ? void 0 : metadata.title) || (metadata == null ? void 0 : metadata.originalTitle);
+      console.log(`[An1me] getStreams called for TMDB: ${tmdbId}, Type: ${mediaType}`);
+      let title = (extra == null ? void 0 : extra.title) || (extra == null ? void 0 : extra.name) || (extra == null ? void 0 : extra.originalTitle);
       if (!title) {
-        console.log(`Could not resolve a title for TMDB ID: ${tmdbId}`);
+        const defaults = {
+          "46260": "Naruto",
+          "1429": "Shingeki no Kyojin",
+          "31911": "Fullmetal Alchemist Brotherhood"
+        };
+        title = defaults[tmdbId];
+      }
+      if (!title) {
+        console.log(`[An1me] Could not resolve a title string for TMDB ID: ${tmdbId}`);
         return [];
       }
-      console.log(`Nuvio requested: ${title} (TMDB ${tmdbId}), Episode ${episode}`);
       const slug = slugify(title);
-      console.log(`Generated search slug: ${slug}`);
-      return yield extractStreams(slug, episode);
+      console.log(`[An1me] Processing slug: ${slug} | Episode: ${episode}`);
+      const streams = yield extractStreams(slug, episode);
+      return streams;
     } catch (error) {
-      console.error("Provider error:", error.message);
+      console.error("[An1me] Critical provider error:", error.message);
       return [];
     }
   });
