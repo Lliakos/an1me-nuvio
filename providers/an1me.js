@@ -46,24 +46,35 @@ var require_extractor = __commonJS({
   "src/an1me/extractor.js"(exports2, module2) {
     var cheerio = require("cheerio-without-node-native");
     var { fetchText, HEADERS } = require_http();
+    function decodeBase64(str) {
+      return Buffer.from(str, "base64").toString("utf-8");
+    }
     function extractStreams2(title, episode) {
       return __async(this, null, function* () {
         const url = `https://an1me.to/watch/${title}-episode-${episode}/`;
         const html = yield fetchText(url);
         const $ = cheerio.load(html);
         const streams = [];
-        console.log("Searching for embeds...");
+        console.log(`Searching for embeds on: ${url}`);
         $("[data-embed-id]").each((i, el) => {
           try {
             const data = $(el).attr("data-embed-id");
-            const [name, iframe] = data.split(":");
-            const decodedIframe = atob(iframe);
+            const [nameB64, iframeB64] = data.split(":");
+            const serverName = decodeBase64(nameB64);
+            const decodedIframe = decodeBase64(iframeB64);
             const urlMatch = decodedIframe.match(/src="([^"]+)"/);
             if (urlMatch) {
+              const embedUrl = urlMatch[1];
+              const krVideoMatch = embedUrl.match(/kr-video\/([^?]+)/);
+              let finalUrl = embedUrl;
+              if (krVideoMatch) {
+                finalUrl = decodeBase64(krVideoMatch[1]);
+              }
               streams.push({
                 name: "An1me",
-                title: atob(name),
-                url: urlMatch[1],
+                title: serverName.trim(),
+                // e.g., "Alpha Serversub"
+                url: finalUrl,
                 headers: HEADERS
               });
             }
