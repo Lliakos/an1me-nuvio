@@ -10973,16 +10973,25 @@ var provider = (() => {
             "31911": "fullmetal-alchemist-brotherhood"
             // Fullmetal Alchemist: B
           };
-          let slug = null;
-          const targetId = String(tmdbId);
-          if (slugMap[targetId]) {
-            slug = slugMap[targetId];
-            console.log(`[Index] Match found in local dictionary mapping: ${slug}`);
-          } else {
-            slug = await searchAnimeSlug(extra || tmdbId);
+          let targetId = "";
+          if (tmdbId !== null && tmdbId !== void 0) {
+            targetId = String(tmdbId).trim().split(".")[0];
           }
-          if (!slug) return [];
+          console.log(`[An1me Provider] Received TMDB ID: "${targetId}" (Type: ${typeof tmdbId}), Season: ${season}, Episode: ${episode}`);
+          let slug = null;
+          if (targetId && slugMap[targetId]) {
+            slug = slugMap[targetId];
+            console.log(`[An1me Provider] Dictionary HIT! Using slug: "${slug}"`);
+          } else {
+            console.log(`[An1me Provider] Dictionary MISS for ID "${targetId}". Attempting dynamic search fallback...`);
+            slug = await searchAnimeSlug(extra || tmdbId || String(title));
+          }
+          if (!slug) {
+            console.log(`[An1me Provider] Critical Error: Unable to resolve a slug candidate.`);
+            return [];
+          }
           const streams = await extractStreams(slug, episode);
+          console.log(`[An1me Provider] Extraction finished. Found ${streams.length} stream entries.`);
           return streams.map((stream) => {
             let finalizedUrl = stream.url;
             if (!finalizedUrl.includes(".m3u8") && !finalizedUrl.includes(".mp4")) {
@@ -10994,7 +11003,7 @@ var provider = (() => {
             };
           });
         } catch (err) {
-          console.log(`[Index] Error executing stream extraction: ${err.message}`);
+          console.log(`[An1me Index Exception] Error executing stream extraction: ${err.message}`);
           return [];
         }
       }
