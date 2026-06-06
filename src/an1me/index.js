@@ -12,22 +12,22 @@ function slugify(text) {
 }
 
 function getStreams(tmdbId, mediaType, season, episode, extra) {
-    // Standard backup maps if titles do not pass correctly through context attributes
+    // Dynamic mapping table based on what you select
     const defaults = {
-        "46260": "Naruto",
-        "1429": "Shingeki no Kyojin",
-        "31911": "Fullmetal Alchemist Brotherhood"
+        "2150": "naruto",
+        "46260": "naruto",
+        "1429": "shingeki-no-kyojin",
+        "31911": "fullmetal-alchemist-brotherhood"
     };
 
     const title = extra?.title || extra?.name || extra?.originalTitle || defaults[tmdbId];
 
     if (!title) {
+        console.log(`[Index] No valid title found for TMDB ID: ${tmdbId}`);
         return Promise.resolve([]);
     }
 
     const slug = slugify(title);
-
-    // Explicitly return the Promise resolution map to satisfy the plugin environment wrapper
     return extractStreams(slug, episode);
 }
 

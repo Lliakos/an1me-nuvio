@@ -73,12 +73,14 @@ var require_extractor = __commonJS({
     }
     function extractStreams2(title, episode) {
       const url = `https://an1me.to/watch/${title}-episode-${episode}/`;
+      console.log(`[Extractor] Fetching page: ${url}`);
       return fetchText(url).then((html) => {
         const $ = cheerio.load(html);
         const promises = [];
         $("[data-embed-id]").each((i, el) => {
           try {
             const data = $(el).attr("data-embed-id");
+            if (!data) return;
             const parts = data.split(":");
             const serverName = safeAtob(parts[0]).trim();
             const decodedIframe = safeAtob(parts[1]);
@@ -88,7 +90,8 @@ var require_extractor = __commonJS({
               const krVideoMatch = embedUrl.match(/kr-video\/([^?]+)/);
               if (krVideoMatch) {
                 const decodedLink = safeAtob(krVideoMatch[1]);
-                if (decodedLink.indexOf("photos.google.com") !== -1 || decodedLink.indexOf("googleusercontent.com") !== -1) {
+                if (decodedLink.includes("googleusercontent.com") || decodedLink.includes("photos.google.com")) {
+                  console.log(`[Extractor] Fetching nested video stream for: ${serverName}`);
                   const p = extractGooglePhotosMp4(decodedLink).then((playableUrl) => {
                     return {
                       name: "An1me",
@@ -109,10 +112,14 @@ var require_extractor = __commonJS({
               }
             }
           } catch (e) {
+            console.log("[Extractor] Individual embed compilation error:", e.message);
           }
         });
         return Promise.all(promises);
-      }).catch(() => []);
+      }).catch((err) => {
+        console.log(`[Extractor] Critical Network/HTTP Error: ${err.message}`);
+        return [];
+      });
     }
     module2.exports = { extractStreams: extractStreams2 };
   }
@@ -126,12 +133,14 @@ function slugify(text) {
 }
 function getStreams(tmdbId, mediaType, season, episode, extra) {
   const defaults = {
-    "46260": "Naruto",
-    "1429": "Shingeki no Kyojin",
-    "31911": "Fullmetal Alchemist Brotherhood"
+    "2150": "naruto",
+    "46260": "naruto",
+    "1429": "shingeki-no-kyojin",
+    "31911": "fullmetal-alchemist-brotherhood"
   };
   const title = (extra == null ? void 0 : extra.title) || (extra == null ? void 0 : extra.name) || (extra == null ? void 0 : extra.originalTitle) || defaults[tmdbId];
   if (!title) {
+    console.log(`[Index] No valid title found for TMDB ID: ${tmdbId}`);
     return Promise.resolve([]);
   }
   const slug = slugify(title);
