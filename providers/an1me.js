@@ -10811,10 +10811,7 @@ var provider = (() => {
         const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
         let str = String(b64).replace(/=+$/, "");
         if (str.length % 4 === 1) return "";
-        let bc = 0;
-        let bs = 0;
-        let idx = 0;
-        let output = "";
+        let bc = 0, bs = 0, idx = 0, output = "";
         while (idx < str.length) {
           let char = str.charAt(idx++);
           let pos = chars.indexOf(char);
@@ -10845,8 +10842,47 @@ var provider = (() => {
           return googlePhotosUrl;
         });
       }
-      function extractStreams(title, episode) {
-        const url = `https://an1me.to/watch/${title}-episode-${episode}/`;
+      function fallbackSlugify(text) {
+        if (!text) return "";
+        return text.toString().toLowerCase().trim().replace(/\s+/g, "-").replace(/[^\w\-]+/g, "").replace(/\-\-+/g, "-");
+      }
+      async function searchAnimeSlug(title) {
+        const query = encodeURIComponent(title);
+        const searchUrl = `https://an1me.to/?s=${query}`;
+        console.log(`[Extractor] Searching for actual slug: ${searchUrl}`);
+        try {
+          const html = await fetchText(searchUrl);
+          const $ = cheerio.load(html);
+          let exactSlug = null;
+          $("a").each((i, el) => {
+            if (exactSlug) return;
+            const href = $(el).attr("href");
+            if (!href) return;
+            if (href.includes("/watch/")) {
+              const match = href.match(/\/watch\/([^\/]+)/);
+              if (match) {
+                exactSlug = match[1].replace(/-episode-\d+/i, "");
+              }
+            } else if (href.includes("/anime/")) {
+              const match = href.match(/\/anime\/([^\/]+)/);
+              if (match) {
+                exactSlug = match[1];
+              }
+            }
+          });
+          if (exactSlug) {
+            console.log(`[Extractor] Search successful! Found exact slug: ${exactSlug}`);
+            return exactSlug;
+          }
+          console.log(`[Extractor] Search returned no matching links. Falling back to guessing.`);
+          return fallbackSlugify(title);
+        } catch (err) {
+          console.log(`[Extractor] Search network error: ${err.message}. Falling back to guessing.`);
+          return fallbackSlugify(title);
+        }
+      }
+      function extractStreams(slug, episode) {
+        const url = `https://an1me.to/watch/${slug}-episode-${episode}/`;
         console.log(`[Extractor] Fetching page: ${url}`);
         return fetchText(url).then((html) => {
           const $ = cheerio.load(html);
@@ -10895,35 +10931,30 @@ var provider = (() => {
           return [];
         });
       }
-      module.exports = { extractStreams };
+      module.exports = { extractStreams, searchAnimeSlug };
     }
   });
 
   // src/an1me/index.js
   var require_index = __commonJS({
     "src/an1me/index.js"(exports, module) {
-      var { extractStreams } = require_extractor();
-      function slugify(text) {
-        if (!text) return "";
-        return text.toString().toLowerCase().trim().replace(/\s+/g, "-").replace(/[^\w\-]+/g, "").replace(/\-\-+/g, "-");
-      }
-      function getStreams(tmdbId, mediaType, season, episode, extra) {
+      var { extractStreams, searchAnimeSlug } = require_extractor();
+      async function getStreams(tmdbId, mediaType, season, episode, extra) {
         const title = extra?.title || extra?.name || extra?.originalTitle;
         if (!title) {
-          return Promise.resolve([]);
+          return [];
         }
-        const slug = slugify(title);
-        return extractStreams(slug, episode).then((streams) => {
-          return streams.map((stream) => {
-            let finalizedUrl = stream.url;
-            if (!finalizedUrl.includes(".m3u8") && !finalizedUrl.includes(".mp4")) {
-              finalizedUrl += finalizedUrl.includes("?") ? "&ext=.mp4" : "?ext=.mp4";
-            }
-            return {
-              ...stream,
-              url: finalizedUrl
-            };
-          });
+        const slug = await searchAnimeSlug(title);
+        const streams = await extractStreams(slug, episode);
+        return streams.map((stream) => {
+          let finalizedUrl = stream.url;
+          if (!finalizedUrl.includes(".m3u8") && !finalizedUrl.includes(".mp4")) {
+            finalizedUrl += finalizedUrl.includes("?") ? "&ext=.mp4" : "?ext=.mp4";
+          }
+          return {
+            ...stream,
+            url: finalizedUrl
+          };
         });
       }
       module.exports = { getStreams };

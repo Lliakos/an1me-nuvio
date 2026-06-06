@@ -1,16 +1,13 @@
 const cheerio = require('cheerio-without-node-native');
 const { fetchText, HEADERS } = require('./http.js');
 
-// Standard cross-platform base64 decoder that runs identically in Node and Nuvio Hermes
+// Standard cross-platform base64 decoder
 function safeAtob(b64) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
     let str = String(b64).replace(/=+$/, '');
     if (str.length % 4 === 1) return '';
     
-    let bc = 0;
-    let bs = 0;
-    let idx = 0;
-    let output = '';
+    let bc = 0, bs = 0, idx = 0, output = '';
     
     while (idx < str.length) {
         let char = str.charAt(idx++);
@@ -25,14 +22,12 @@ function safeAtob(b64) {
     return output;
 }
 
-// Extract deep links from Google Photos pages by targeting the raw video stream configuration
+// Extract deep links from Google Photos pages
 function extractGooglePhotosMp4(googlePhotosUrl) {
     console.log(`[Extractor] Fetching actual Google Photos page: ${googlePhotosUrl}`);
 
     return fetchText(googlePhotosUrl)
         .then(html => {
-            // Google heavily escapes URLs inside their JSON script variables.
-            // We MUST unescape slashes, ampersands, and equals signs (\u003d / \x3d)
             const cleanHtml = html
                 .replace(/\\\//g, '/')
                 .replace(/\\u0026/g, '&')
@@ -40,20 +35,15 @@ function extractGooglePhotosMp4(googlePhotosUrl) {
                 .replace(/\\x3d/g, '=')
                 .replace(/\\x26/g, '&');
             
-            // Priority 1: Standard Google Video Playback URLs
             const googleVideoMatch = cleanHtml.match(/(https:\/\/[^\s"'\\]+\.googlevideo\.com\/videoplayback[^\s"'\\]*)/i);
             if (googleVideoMatch) return googleVideoMatch[1];
 
-            // Priority 2: Google Photos Video Stream markers (=m18, =m22, =m37)
-            // This is the absolute most common format for Google Photos direct MP4 streams!
             const gPhotosQualityMatch = cleanHtml.match(/(https:\/\/[^\s"'\\]+\.googleusercontent\.com\/[^\s"'\\]+=m(?:18|22|37)[^\s"'\\]*)/i);
             if (gPhotosQualityMatch) return gPhotosQualityMatch[1];
 
-            // Priority 3: Google Video Downloads endpoint
             const gDownloadMatch = cleanHtml.match(/(https:\/\/video-downloads\.googleusercontent\.com\/[^\s"'\\]+)/i);
             if (gDownloadMatch) return gDownloadMatch[1];
 
-            // Priority 4: Standard mp4/m3u8 fallback
             const directMatch = cleanHtml.match(/(https?:\/\/[^\s"'\\]+\.(?:mp4|m3u8)[^\s"'\\]*)/i);
             if (directMatch) return directMatch[1];
 
@@ -66,8 +56,72 @@ function extractGooglePhotosMp4(googlePhotosUrl) {
         });
 }
 
-function extractStreams(title, episode) {
-    const url = `https://an1me.to/watch/${title}-episode-${episode}/`;
+// --- NEW SEARCH ARCHITECTURE --- //
+
+// Fallback logic in case the site search fails
+function fallbackSlugify(text) {
+    if (!text) return '';
+    return text.toString().toLowerCase().trim()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-');
+}
+
+// Dynamically search the site to resolve the correct URL slug
+async function searchAnimeSlug(title) {
+    const query = encodeURIComponent(title);
+    
+    // Most anime sites use ?s= query. Adjust if an1me.to uses something like /search?keyword=
+    const searchUrl = `https://an1me.to/?s=${query}`; 
+    console.log(`[Extractor] Searching for actual slug: ${searchUrl}`);
+
+    try {
+        const html = await fetchText(searchUrl);
+        const $ = cheerio.load(html);
+        let exactSlug = null;
+
+        // Loop through links to find the first valid show URL.
+        // *NOTE: If this grabs the wrong link first, change 'a' to the specific class of the search results title (e.g. '.result-title a')
+        $('a').each((i, el) => {
+            if (exactSlug) return; 
+            
+            const href = $(el).attr('href');
+            if (!href) return;
+
+            // Scenario 1: Link leads directly to a watch/episode page
+            if (href.includes('/watch/')) {
+                const match = href.match(/\/watch\/([^\/]+)/);
+                if (match) {
+                    // Strip the episode part to get the pure base slug
+                    exactSlug = match[1].replace(/-episode-\d+/i, ''); 
+                }
+            } 
+            // Scenario 2: Link leads to an info/anime page
+            else if (href.includes('/anime/')) {
+                const match = href.match(/\/anime\/([^\/]+)/);
+                if (match) {
+                    exactSlug = match[1];
+                }
+            }
+        });
+
+        if (exactSlug) {
+            console.log(`[Extractor] Search successful! Found exact slug: ${exactSlug}`);
+            return exactSlug;
+        }
+
+        console.log(`[Extractor] Search returned no matching links. Falling back to guessing.`);
+        return fallbackSlugify(title);
+
+    } catch (err) {
+        console.log(`[Extractor] Search network error: ${err.message}. Falling back to guessing.`);
+        return fallbackSlugify(title);
+    }
+}
+
+function extractStreams(slug, episode) {
+    // We now use the resolved 'slug' instead of blindly trusting 'title'
+    const url = `https://an1me.to/watch/${slug}-episode-${episode}/`;
     console.log(`[Extractor] Fetching page: ${url}`);
     
     return fetchText(url)
@@ -92,7 +146,6 @@ function extractStreams(title, episode) {
                         if (krVideoMatch) {
                             let decodedLink = safeAtob(krVideoMatch[1]);
                             
-                            // Check for ANY variant of Google Photos, Drive, or usercontent sharing formats
                             if (decodedLink.includes('photos.google.com') || decodedLink.includes('photos.app.goo.gl') || decodedLink.includes('googleusercontent.com')) {
                                 console.log(`[Extractor] Detected Google Photos server data for: ${serverName}`);
                                 
@@ -106,7 +159,6 @@ function extractStreams(title, episode) {
                                 });
                                 promises.push(p);
                             } else {
-                                // Direct static stream track file format (e.g., standard .m3u8 URLs)
                                 promises.push(Promise.resolve({
                                     name: "An1me",
                                     title: serverName,
@@ -129,4 +181,4 @@ function extractStreams(title, episode) {
         });
 }
 
-module.exports = { extractStreams };
+module.exports = { extractStreams, searchAnimeSlug };
