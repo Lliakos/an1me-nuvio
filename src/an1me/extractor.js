@@ -135,7 +135,10 @@ async function searchAnimeSlug(titleOrExtra) {
 }
 
 function extractStreams(slug, episode) {
-    const url = `https://an1me.to/watch/${slug}-episode-${episode}/`;
+    // Force episode to be a clean sanitized integer number string 
+    const cleanEpisode = parseInt(episode, 10) || 1;
+    
+    const url = `https://an1me.to/watch/${slug}-episode-${cleanEpisode}/`;
     console.log(`[Extractor] Fetching page: ${url}`);
     
     return fetchText(url)
