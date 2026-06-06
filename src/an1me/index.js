@@ -1,17 +1,6 @@
-const { extractStreams } = require('./extractor.js');
-
-function slugify(text) {
-    if (!text) return '';
-    return text
-        .toString()
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, '-')          
-        .replace(/[^\w\-]+/g, '')      
-        .replace(/\-\-+/g, '-');       
-}
-
 function getStreams(tmdbId, mediaType, season, episode, extra) {
+    // 1. Try to get title from Nuvio's extra metadata first
+    // 2. Fallback to defaults if Nuvio didn't provide extra data
     const defaults = {
         "2150": "naruto",
         "46260": "naruto",
@@ -20,47 +9,32 @@ function getStreams(tmdbId, mediaType, season, episode, extra) {
         "65123": "rezero-kara-hajimeru-isekai-seikatsu"
     };
 
-    const title = extra?.title || extra?.name || extra?.originalTitle || defaults[tmdbId];
+    let title = extra?.title || extra?.name || extra?.originalTitle || defaults[tmdbId];
 
+    // 3. REMOVE the "if (!title) return []" block. 
+    // Instead, if we still have no title, log it so we can see what Nuvio is sending.
     if (!title) {
-        return Promise.resolve([]);
+        console.log(`[Index] Warning: No title found for TMDB ID: ${tmdbId}`);
+        title = "naruto"; // Or any valid fallback slug
     }
 
     const slug = slugify(title);
     
     return extractStreams(slug, episode).then(streams => {
-        // --- DEBUG INJECTION ---
-        // If this appears in your app, your provider is successfully loading.
+        // Keep your Debug Injection here to confirm it's loading
         streams.push({
             name: "An1me",
             title: "DEBUG: Forced Stream",
             url: "https://www.w3schools.com/html/mov_bbb.mp4",
             headers: {}
         });
-        // -----------------------
 
         return streams.map(stream => {
             let finalizedUrl = stream.url;
-            
-            // Standardize output format
             if (!finalizedUrl.includes('.m3u8') && !finalizedUrl.includes('.mp4')) {
                 finalizedUrl += finalizedUrl.includes('?') ? '&ext=.mp4' : '?ext=.mp4';
             }
-
-            return {
-                ...stream,
-                url: finalizedUrl
-            };
+            return { ...stream, url: finalizedUrl };
         });
     });
-}
-
-module.exports = { getStreams };
-
-// Context support for Nuvio environment
-if (typeof global !== 'undefined') { 
-    global.getStreams = getStreams; 
-}
-if (typeof window !== 'undefined') { 
-    window.getStreams = getStreams; 
 }
