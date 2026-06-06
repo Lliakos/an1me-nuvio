@@ -12,23 +12,43 @@ function slugify(text) {
 }
 
 function getStreams(tmdbId, mediaType, season, episode, extra) {
-    // Dynamic mapping table based on what you select
     const defaults = {
         "2150": "naruto",
         "46260": "naruto",
         "1429": "shingeki-no-kyojin",
-        "31911": "fullmetal-alchemist-brotherhood"
+        "31911": "fullmetal-alchemist-brotherhood",
+        "65123": "rezero-kara-hajimeru-isekai-seikatsu"
     };
 
     const title = extra?.title || extra?.name || extra?.originalTitle || defaults[tmdbId];
 
     if (!title) {
-        console.log(`[Index] No valid title found for TMDB ID: ${tmdbId}`);
         return Promise.resolve([]);
     }
 
     const slug = slugify(title);
-    return extractStreams(slug, episode);
+    
+    return extractStreams(slug, episode).then(streams => {
+        return streams.map(stream => {
+            let finalizedUrl = stream.url;
+            
+            if (!finalizedUrl.includes('.m3u8') && !finalizedUrl.includes('.mp4')) {
+                finalizedUrl += finalizedUrl.includes('?') ? '&ext=.mp4' : '?ext=.mp4';
+            }
+
+            return {
+                ...stream,
+                url: finalizedUrl
+            };
+        });
+    });
 }
 
 module.exports = { getStreams };
+
+if (typeof global !== 'undefined') { 
+    global.getStreams = getStreams; 
+}
+if (typeof window !== 'undefined') { 
+    window.getStreams = getStreams; 
+}

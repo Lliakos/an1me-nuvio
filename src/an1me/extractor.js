@@ -1,17 +1,23 @@
 const cheerio = require('cheerio-without-node-native');
 const { fetchText, HEADERS } = require('./http.js');
 
-// A safe cross-platform base64 decoder compatible with Nuvio's mobile runtime engine
-function safeAtob(input) {
+// Standard cross-platform base64 decoder that runs identically in Node and Nuvio Hermes
+function safeAtob(b64) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-    let str = input.replace(/=+$/, '');
-    let output = '';
+    let str = String(b64).replace(/=+$/, '');
     if (str.length % 4 === 1) return '';
-    for (let bc = 0, bs = 0, idx = 0; idx < str.length; idx++) {
-        const char = str.charAt(idx);
-        const p = chars.indexOf(char);
-        if (p === -1) continue;
-        bs = bc % 4 ? bs * 64 + p : p;
+    
+    let bc = 0;
+    let bs = 0;
+    let idx = 0;
+    let output = '';
+    
+    while (idx < str.length) {
+        let char = str.charAt(idx++);
+        let pos = chars.indexOf(char);
+        if (pos === -1) continue;
+        
+        bs = bc % 4 ? bs * 64 + pos : pos;
         if (bc++ % 4) {
             output += String.fromCharCode(255 & (bs >> ((-2 * bc) & 6)));
         }
@@ -21,16 +27,43 @@ function safeAtob(input) {
 
 // Extract deep links from Google Photos pages by targeting the raw video stream configuration
 function extractGooglePhotosMp4(googlePhotosUrl) {
+    console.log(`[Extractor] Fetching actual Google Photos page: ${googlePhotosUrl}`);
+
     return fetchText(googlePhotosUrl)
         .then(html => {
-            const videoMatch = html.match(/(https:\/\/[^\s"']+\.googlevideo\.com\/videoplayback[^\s"']+)/);
-            if (videoMatch) {
-                // Google escapes query parameters in their script blocks; unescape them for standard players
-                return videoMatch[1].replace(/\\u0026/g, '&');
-            }
+            // Google heavily escapes URLs inside their JSON script variables.
+            // We MUST unescape slashes, ampersands, and equals signs (\u003d / \x3d)
+            const cleanHtml = html
+                .replace(/\\\//g, '/')
+                .replace(/\\u0026/g, '&')
+                .replace(/\\u003d/g, '=')
+                .replace(/\\x3d/g, '=')
+                .replace(/\\x26/g, '&');
+            
+            // Priority 1: Standard Google Video Playback URLs
+            const googleVideoMatch = cleanHtml.match(/(https:\/\/[^\s"'\\]+\.googlevideo\.com\/videoplayback[^\s"'\\]*)/i);
+            if (googleVideoMatch) return googleVideoMatch[1];
+
+            // Priority 2: Google Photos Video Stream markers (=m18, =m22, =m37)
+            // This is the absolute most common format for Google Photos direct MP4 streams!
+            const gPhotosQualityMatch = cleanHtml.match(/(https:\/\/[^\s"'\\]+\.googleusercontent\.com\/[^\s"'\\]+=m(?:18|22|37)[^\s"'\\]*)/i);
+            if (gPhotosQualityMatch) return gPhotosQualityMatch[1];
+
+            // Priority 3: Google Video Downloads endpoint
+            const gDownloadMatch = cleanHtml.match(/(https:\/\/video-downloads\.googleusercontent\.com\/[^\s"'\\]+)/i);
+            if (gDownloadMatch) return gDownloadMatch[1];
+
+            // Priority 4: Standard mp4/m3u8 fallback
+            const directMatch = cleanHtml.match(/(https?:\/\/[^\s"'\\]+\.(?:mp4|m3u8)[^\s"'\\]*)/i);
+            if (directMatch) return directMatch[1];
+
+            console.log("[Extractor] Warning: Regex failed to find a stream in the Google Photos HTML.");
             return googlePhotosUrl;
         })
-        .catch(() => googlePhotosUrl);
+        .catch(err => {
+            console.log(`[Extractor] Fetch error on Google Photos: ${err.message}`);
+            return googlePhotosUrl;
+        });
 }
 
 function extractStreams(title, episode) {
@@ -57,11 +90,12 @@ function extractStreams(title, episode) {
                         const krVideoMatch = embedUrl.match(/kr-video\/([^?]+)/);
 
                         if (krVideoMatch) {
-                            const decodedLink = safeAtob(krVideoMatch[1]);
+                            let decodedLink = safeAtob(krVideoMatch[1]);
                             
-                            // Loose matching condition ensuring compatibility with all googleusercontent sub-URLs
-                            if (decodedLink.includes('googleusercontent.com') || decodedLink.includes('photos.google.com')) {
-                                console.log(`[Extractor] Fetching nested video stream for: ${serverName}`);
+                            // Check for ANY variant of Google Photos, Drive, or usercontent sharing formats
+                            if (decodedLink.includes('photos.google.com') || decodedLink.includes('photos.app.goo.gl') || decodedLink.includes('googleusercontent.com')) {
+                                console.log(`[Extractor] Detected Google Photos server data for: ${serverName}`);
+                                
                                 const p = extractGooglePhotosMp4(decodedLink).then(playableUrl => {
                                     return {
                                         name: "An1me",
@@ -72,7 +106,7 @@ function extractStreams(title, episode) {
                                 });
                                 promises.push(p);
                             } else {
-                                // Direct static server route (e.g., .m3u8 playlists from an1 CDN)
+                                // Direct static stream track file format (e.g., standard .m3u8 URLs)
                                 promises.push(Promise.resolve({
                                     name: "An1me",
                                     title: serverName,
