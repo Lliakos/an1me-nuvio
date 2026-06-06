@@ -10908,24 +10908,21 @@ var provider = (() => {
         return text.toString().toLowerCase().trim().replace(/\s+/g, "-").replace(/[^\w\-]+/g, "").replace(/\-\-+/g, "-");
       }
       function getStreams(tmdbId, mediaType, season, episode, extra) {
-        const defaults = {
-          "2150": "naruto",
-          "46260": "naruto",
-          "1429": "shingeki-no-kyojin",
-          "31911": "fullmetal-alchemist-brotherhood",
-          "65123": "rezero-kara-hajimeru-isekai-seikatsu"
-        };
-        const title = extra?.title || extra?.name || extra?.originalTitle || defaults[tmdbId];
+        const title = extra?.title || extra?.name || extra?.originalTitle;
         if (!title) {
           return Promise.resolve([]);
         }
-        return extractStreams(slugify(title), episode).then((streams) => {
+        const slug = slugify(title);
+        return extractStreams(slug, episode).then((streams) => {
           return streams.map((stream) => {
-            let url = stream.url;
-            if (!url.includes(".m3u8") && !url.includes(".mp4")) {
-              url += url.includes("?") ? "&ext=.mp4" : "?ext=.mp4";
+            let finalizedUrl = stream.url;
+            if (!finalizedUrl.includes(".m3u8") && !finalizedUrl.includes(".mp4")) {
+              finalizedUrl += finalizedUrl.includes("?") ? "&ext=.mp4" : "?ext=.mp4";
             }
-            return { ...stream, url };
+            return {
+              ...stream,
+              url: finalizedUrl
+            };
           });
         });
       }
