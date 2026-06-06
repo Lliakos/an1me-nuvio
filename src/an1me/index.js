@@ -1,17 +1,14 @@
+// src/an1me/index.js
 const { extractStreams } = require('./extractor.js');
 
 async function getStreams(tmdbId, mediaType, season, episode) {
     try {
-        console.log("Step 1: Starting getStreams");
-        const results = await extractStreams("naruto", episode);
-        console.log("Step 2: Scraper finished, returning results");
-        return results;
+        // Ensure you map tmdbId to the correct title format here for production
+        return await extractStreams("naruto", episode);
     } catch (error) {
-        console.log("Step 3: Fatal Error caught:", error.message);
+        console.error(error);
         return [];
     }
 }
 
-// Ensure Nuvio can see the function
-global.getStreams = getStreams;
 module.exports = { getStreams };

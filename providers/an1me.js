@@ -84,15 +84,11 @@ var { extractStreams } = require_extractor();
 function getStreams(tmdbId, mediaType, season, episode) {
   return __async(this, null, function* () {
     try {
-      console.log("Step 1: Starting getStreams");
-      const results = yield extractStreams("naruto", episode);
-      console.log("Step 2: Scraper finished, returning results");
-      return results;
+      return yield extractStreams("naruto", episode);
     } catch (error) {
-      console.log("Step 3: Fatal Error caught:", error.message);
+      console.error(error);
       return [];
     }
   });
 }
-global.getStreams = getStreams;
 module.exports = { getStreams };
