@@ -6,12 +6,13 @@ function slugify(text) {
         .toString()
         .toLowerCase()
         .trim()
-        .replace(/\s+/g, '-')          
-        .replace(/[^\w\-]+/g, '')      
-        .replace(/\-\-+/g, '-');       
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-');
 }
 
 function getStreams(tmdbId, mediaType, season, episode, extra) {
+    // 1. Prioritize Nuvio's metadata, fallback to hardcoded map only if necessary
     const defaults = {
         "2150": "naruto",
         "46260": "naruto",
@@ -22,45 +23,26 @@ function getStreams(tmdbId, mediaType, season, episode, extra) {
 
     const title = extra?.title || extra?.name || extra?.originalTitle || defaults[tmdbId];
 
+    // If we have no title, stop here. 
+    // If Re:Zero still doesn't show, it means Nuvio is providing NO title info for it.
     if (!title) {
         return Promise.resolve([]);
     }
 
-    const slug = slugify(title);
-    
-    return extractStreams(slug, episode).then(streams => {
-        // --- DEBUG INJECTION ---
-        // If this appears in your app, your provider is successfully loading.
-        streams.push({
-            name: "An1me",
-            title: "DEBUG: Forced Stream",
-            url: "https://www.w3schools.com/html/mov_bbb.mp4",
-            headers: {}
-        });
-        // -----------------------
-
+    return extractStreams(slugify(title), episode).then(streams => {
+        // Return mapped streams with forced extension
         return streams.map(stream => {
-            let finalizedUrl = stream.url;
-            
-            // Standardize output format
-            if (!finalizedUrl.includes('.m3u8') && !finalizedUrl.includes('.mp4')) {
-                finalizedUrl += finalizedUrl.includes('?') ? '&ext=.mp4' : '?ext=.mp4';
+            let url = stream.url;
+            if (!url.includes('.m3u8') && !url.includes('.mp4')) {
+                url += url.includes('?') ? '&ext=.mp4' : '?ext=.mp4';
             }
-
-            return {
-                ...stream,
-                url: finalizedUrl
-            };
+            return { ...stream, url };
         });
     });
 }
 
 module.exports = { getStreams };
 
-// Context support for Nuvio environment
-if (typeof global !== 'undefined') { 
-    global.getStreams = getStreams; 
-}
-if (typeof window !== 'undefined') { 
-    window.getStreams = getStreams; 
-}
+// Global context support
+if (typeof global !== 'undefined') global.getStreams = getStreams;
+if (typeof window !== 'undefined') window.getStreams = getStreams;

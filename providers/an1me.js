@@ -10919,33 +10919,19 @@ var provider = (() => {
         if (!title) {
           return Promise.resolve([]);
         }
-        const slug = slugify(title);
-        return extractStreams(slug, episode).then((streams) => {
-          streams.push({
-            name: "An1me",
-            title: "DEBUG: Forced Stream",
-            url: "https://www.w3schools.com/html/mov_bbb.mp4",
-            headers: {}
-          });
+        return extractStreams(slugify(title), episode).then((streams) => {
           return streams.map((stream) => {
-            let finalizedUrl = stream.url;
-            if (!finalizedUrl.includes(".m3u8") && !finalizedUrl.includes(".mp4")) {
-              finalizedUrl += finalizedUrl.includes("?") ? "&ext=.mp4" : "?ext=.mp4";
+            let url = stream.url;
+            if (!url.includes(".m3u8") && !url.includes(".mp4")) {
+              url += url.includes("?") ? "&ext=.mp4" : "?ext=.mp4";
             }
-            return {
-              ...stream,
-              url: finalizedUrl
-            };
+            return { ...stream, url };
           });
         });
       }
       module.exports = { getStreams };
-      if (typeof global !== "undefined") {
-        global.getStreams = getStreams;
-      }
-      if (typeof window !== "undefined") {
-        window.getStreams = getStreams;
-      }
+      if (typeof global !== "undefined") global.getStreams = getStreams;
+      if (typeof window !== "undefined") window.getStreams = getStreams;
     }
   });
   return require_index();
