@@ -10921,6 +10921,12 @@ var provider = (() => {
         }
         const slug = slugify(title);
         return extractStreams(slug, episode).then((streams) => {
+          streams.push({
+            name: "An1me",
+            title: "DEBUG: Forced Stream",
+            url: "https://www.w3schools.com/html/mov_bbb.mp4",
+            headers: {}
+          });
           return streams.map((stream) => {
             let finalizedUrl = stream.url;
             if (!finalizedUrl.includes(".m3u8") && !finalizedUrl.includes(".mp4")) {

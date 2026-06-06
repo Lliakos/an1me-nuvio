@@ -29,9 +29,20 @@ function getStreams(tmdbId, mediaType, season, episode, extra) {
     const slug = slugify(title);
     
     return extractStreams(slug, episode).then(streams => {
+        // --- DEBUG INJECTION ---
+        // If this appears in your app, your provider is successfully loading.
+        streams.push({
+            name: "An1me",
+            title: "DEBUG: Forced Stream",
+            url: "https://www.w3schools.com/html/mov_bbb.mp4",
+            headers: {}
+        });
+        // -----------------------
+
         return streams.map(stream => {
             let finalizedUrl = stream.url;
             
+            // Standardize output format
             if (!finalizedUrl.includes('.m3u8') && !finalizedUrl.includes('.mp4')) {
                 finalizedUrl += finalizedUrl.includes('?') ? '&ext=.mp4' : '?ext=.mp4';
             }
@@ -46,6 +57,7 @@ function getStreams(tmdbId, mediaType, season, episode, extra) {
 
 module.exports = { getStreams };
 
+// Context support for Nuvio environment
 if (typeof global !== 'undefined') { 
     global.getStreams = getStreams; 
 }
