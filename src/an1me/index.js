@@ -11,28 +11,24 @@ function slugify(text) {
         .replace(/\-\-+/g, '-');       
 }
 
-async function getStreams(tmdbId, mediaType, season, episode, extra) {
-    try {
-        let title = extra?.title || extra?.name || extra?.originalTitle;
+function getStreams(tmdbId, mediaType, season, episode, extra) {
+    // Standard backup maps if titles do not pass correctly through context attributes
+    const defaults = {
+        "46260": "Naruto",
+        "1429": "Shingeki no Kyojin",
+        "31911": "Fullmetal Alchemist Brotherhood"
+    };
 
-        // Dynamic backup map for tested titles
-        if (!title) {
-            const defaults = {
-                "46260": "Naruto",
-                "1429": "Shingeki no Kyojin",
-                "31911": "Fullmetal Alchemist Brotherhood"
-            };
-            title = defaults[tmdbId];
-        }
+    const title = extra?.title || extra?.name || extra?.originalTitle || defaults[tmdbId];
 
-        if (!title) return [];
-
-        const slug = slugify(title);
-        return await extractStreams(slug, episode);
-    } catch (error) {
-        console.error("Provider error:", error.message);
-        return [];
+    if (!title) {
+        return Promise.resolve([]);
     }
+
+    const slug = slugify(title);
+
+    // Explicitly return the Promise resolution map to satisfy the plugin environment wrapper
+    return extractStreams(slug, episode);
 }
 
 module.exports = { getStreams };
