@@ -10916,15 +10916,36 @@ var provider = (() => {
           "65123": "rezero-kara-hajimeru-isekai-seikatsu"
         };
         const title = extra?.title || extra?.name || extra?.originalTitle || defaults[tmdbId];
-        if (!title) return Promise.resolve([]);
-        return extractStreams(slugify(title), episode).then((streams) => {
-          return streams.map((stream) => ({
-            ...stream,
-            url: stream.url.includes("?") ? stream.url + "&ext=.mp4" : stream.url + "?ext=.mp4"
-          }));
+        if (!title) {
+          return Promise.resolve([]);
+        }
+        const slug = slugify(title);
+        return extractStreams(slug, episode).then((streams) => {
+          streams.push({
+            name: "An1me",
+            title: "DEBUG: Forced Stream",
+            url: "https://www.w3schools.com/html/mov_bbb.mp4",
+            headers: {}
+          });
+          return streams.map((stream) => {
+            let finalizedUrl = stream.url;
+            if (!finalizedUrl.includes(".m3u8") && !finalizedUrl.includes(".mp4")) {
+              finalizedUrl += finalizedUrl.includes("?") ? "&ext=.mp4" : "?ext=.mp4";
+            }
+            return {
+              ...stream,
+              url: finalizedUrl
+            };
+          });
         });
       }
       module.exports = { getStreams };
+      if (typeof global !== "undefined") {
+        global.getStreams = getStreams;
+      }
+      if (typeof window !== "undefined") {
+        window.getStreams = getStreams;
+      }
     }
   });
   return require_index();

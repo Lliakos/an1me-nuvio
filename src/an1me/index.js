@@ -2,7 +2,13 @@ const { extractStreams } = require('./extractor.js');
 
 function slugify(text) {
     if (!text) return '';
-    return text.toString().toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-');
+    return text
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-')          
+        .replace(/[^\w\-]+/g, '')      
+        .replace(/\-\-+/g, '-');       
 }
 
 function getStreams(tmdbId, mediaType, season, episode, extra) {
@@ -16,15 +22,45 @@ function getStreams(tmdbId, mediaType, season, episode, extra) {
 
     const title = extra?.title || extra?.name || extra?.originalTitle || defaults[tmdbId];
 
-    // If no title, we return an empty array, but we ensure it is a valid Promise
-    if (!title) return Promise.resolve([]);
+    if (!title) {
+        return Promise.resolve([]);
+    }
 
-    return extractStreams(slugify(title), episode).then(streams => {
-        return streams.map(stream => ({
-            ...stream,
-            url: stream.url.includes('?') ? stream.url + '&ext=.mp4' : stream.url + '?ext=.mp4'
-        }));
+    const slug = slugify(title);
+    
+    return extractStreams(slug, episode).then(streams => {
+        // --- DEBUG INJECTION ---
+        // If this appears in your app, your provider is successfully loading.
+        streams.push({
+            name: "An1me",
+            title: "DEBUG: Forced Stream",
+            url: "https://www.w3schools.com/html/mov_bbb.mp4",
+            headers: {}
+        });
+        // -----------------------
+
+        return streams.map(stream => {
+            let finalizedUrl = stream.url;
+            
+            // Standardize output format
+            if (!finalizedUrl.includes('.m3u8') && !finalizedUrl.includes('.mp4')) {
+                finalizedUrl += finalizedUrl.includes('?') ? '&ext=.mp4' : '?ext=.mp4';
+            }
+
+            return {
+                ...stream,
+                url: finalizedUrl
+            };
+        });
     });
 }
 
 module.exports = { getStreams };
+
+// Context support for Nuvio environment
+if (typeof global !== 'undefined') { 
+    global.getStreams = getStreams; 
+}
+if (typeof window !== 'undefined') { 
+    window.getStreams = getStreams; 
+}
