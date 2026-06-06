@@ -1,0 +1,166 @@
+C:\Users\Philip\Desktop\an1me-nuvio>node build.js an1me
+
+Building provider: an1me...
+
+✅ Built an1me.js successfully!
+
+
+C:\Users\Philip\Desktop\an1me-nuvio>node test.js
+
+Starting batch test...
+
+
+=========================================
+
+🎬 Testing: Re:Zero (ID: 65123)
+
+=========================================
+
+[Extractor] Searching for: https://an1me.to/?s=Re%3AZero%20-%20Starting%20Life%20in%20Another%20World
+
+[Extractor] Search successful! Found validated slug: slice-of-life
+
+[Extractor] Fetching page: https://an1me.to/watch/slice-of-life-episode-1/
+
+[Extractor] Critical Network/HTTP Error: HTTP Error 404
+
+❌ No streams found for Re:Zero.
+
+
+
+=========================================
+
+🎬 Testing: Naruto (ID: 2150)
+
+=========================================
+
+[Extractor] Searching for: https://an1me.to/?s=Naruto
+
+[Extractor] No verified search links matched. Defaulting to fallback guess: naruto
+
+[Extractor] Fetching page: https://an1me.to/watch/naruto-episode-1/
+
+[Extractor] Detected Google Photos server data for: Alpha Serversub
+
+[Extractor] Fetching actual Google Photos page: https://photos.google.com/share/AF1QipPGBF3GQdlsqQDmLuptFeZzbJEv8j_UV4APPMVX9fLY_L3SWfZL99EWTVOqEoJFDQ/photo/AF1QipMwp7QwQbLz5twNu3wAQq3CGUXQg6ct-pQ_MEe4?key=Q0FtTnpES1hPdUU3THktT1N1TkxSWi1CeHphR1hn
+
+[Extractor] Fetch error on Google Photos: HTTP Error 404
+
+✅ Success! Found 2 stream(s):
+
+[
+
+  {
+
+    "name": "An1me",
+
+    "title": "An1 Serversub",
+
+    "url": "https://cdn.an1me.io/simple/naruto/%5BA.C.Spartans%5D%20Naruto%20001%20%2810bit%29.m3u8",
+
+    "headers": {
+
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+
+      "Referer": "https://an1me.to/"
+
+    }
+
+  },
+
+  {
+
+    "name": "An1me",
+
+    "title": "Alpha Serversub",
+
+    "url": "https://photos.google.com/share/AF1QipPGBF3GQdlsqQDmLuptFeZzbJEv8j_UV4APPMVX9fLY_L3SWfZL99EWTVOqEoJFDQ/photo/AF1QipMwp7QwQbLz5twNu3wAQq3CGUXQg6ct-pQ_MEe4?key=Q0FtTnpES1hPdUU3THktT1N1TkxSWi1CeHphR1hn&ext=.mp4",
+
+    "headers": {
+
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+
+      "Referer": "https://an1me.to/"
+
+    }
+
+  }
+
+]
+
+
+
+=========================================
+
+🎬 Testing: Attack on Titan (ID: 1429)
+
+=========================================
+
+[Extractor] Searching for: https://an1me.to/?s=Attack%20on%20Titan
+
+[Extractor] Searching for: https://an1me.to/?s=Shingeki%20no%20Kyojin
+
+[Extractor] No verified search links matched. Defaulting to fallback guess: attack-on-titan
+
+[Extractor] Fetching page: https://an1me.to/watch/attack-on-titan-episode-1/
+
+[Extractor] Critical Network/HTTP Error: HTTP Error 404
+
+❌ No streams found for Attack on Titan.
+
+
+
+=========================================
+
+🎬 Testing: Fullmetal Alchemist: Brotherhood (ID: 31911)
+
+=========================================
+
+[Extractor] Searching for: https://an1me.to/?s=Fullmetal%20Alchemist%3A%20Brotherhood
+
+[Extractor] Searching for: https://an1me.to/?s=Hagane%20no%20Renkinjutsushi%3A%20Fullmetal%20Alchemist
+
+[Extractor] No verified search links matched. Defaulting to fallback guess: fullmetal-alchemist-brotherhood
+
+[Extractor] Fetching page: https://an1me.to/watch/fullmetal-alchemist-brotherhood-episode-1/
+
+[Extractor] Detected Google Photos server data for: Alpha Serversub
+
+[Extractor] Fetching actual Google Photos page: https://photos.google.com/share/AF1QipNVqvF1YUfOxT1aMChJvBmtGNnmbxNrDTl-KEns2Qbi7zgc2Hi_oO5N9XBQ1ue97A/photo/AF1QipP4hnH9XFG1S1lGqkNdBy_xw8WHMOqS5Bx_Jth1?key=MDJ3ZVh3elpYM0xnM0xweW15aklQT201bnhpcm1B
+
+✅ Success! Found 1 stream(s):
+
+[
+
+  {
+
+    "name": "An1me",
+
+    "title": "Alpha Serversub",
+
+    "url": "https://video-downloads.googleusercontent.com/ADGPM2lfWB5QxYwKBgrSuiulC2A4ZpZyWO5uyy4agYmP6qpVgqaBvePr8JVOU_A24p2qZJTK7Z3bslaD-dLpy_6rUh8rDS2IajdTzSKSLZfpUhMxmz5Ha8Aq6Zm4R-7qEo1fV4-K_5nlt77TL6Eh9_Z9SI18XbtwE2J5kL4-bHEci_8g0QJot9U6G2x_PMx5ZZMa95MFIKwoTuehvZemOqBpu_2sidO_nQ?ext=.mp4",
+
+    "headers": {
+
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+
+      "Referer": "https://an1me.to/"
+
+    }
+
+  }
+
+]
+
+
+
+Batch testing complete!
+
+
+
+
+the links it should find are 
+
+https://an1me.to/watch/rezero-kara-hajimeru-isekai-seikatsu-episode-25/
+
+https://an1me.to/watch/shingeki-no-kyojin-episode-25/

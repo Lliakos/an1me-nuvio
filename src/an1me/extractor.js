@@ -1,19 +1,16 @@
 const cheerio = require('cheerio-without-node-native');
 const { fetchText, HEADERS } = require('./http.js');
 
-// Standard cross-platform base64 decoder
 function safeAtob(b64) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
     let str = String(b64).replace(/=+$/, '');
     if (str.length % 4 === 1) return '';
     
     let bc = 0, bs = 0, idx = 0, output = '';
-    
     while (idx < str.length) {
         let char = str.charAt(idx++);
         let pos = chars.indexOf(char);
         if (pos === -1) continue;
-        
         bs = bc % 4 ? bs * 64 + pos : pos;
         if (bc++ % 4) {
             output += String.fromCharCode(255 & (bs >> ((-2 * bc) & 6)));
@@ -22,10 +19,8 @@ function safeAtob(b64) {
     return output;
 }
 
-// Extract deep links from Google Photos pages
 function extractGooglePhotosMp4(googlePhotosUrl) {
     console.log(`[Extractor] Fetching actual Google Photos page: ${googlePhotosUrl}`);
-
     return fetchText(googlePhotosUrl)
         .then(html => {
             const cleanHtml = html
@@ -56,9 +51,6 @@ function extractGooglePhotosMp4(googlePhotosUrl) {
         });
 }
 
-// --- NEW SEARCH ARCHITECTURE --- //
-
-// Fallback logic in case the site search fails
 function fallbackSlugify(text) {
     if (!text) return '';
     return text.toString().toLowerCase().trim()
@@ -67,60 +59,82 @@ function fallbackSlugify(text) {
         .replace(/\-\-+/g, '-');
 }
 
-// Dynamically search the site to resolve the correct URL slug
-async function searchAnimeSlug(title) {
-    const query = encodeURIComponent(title);
-    
-    // Most anime sites use ?s= query. Adjust if an1me.to uses something like /search?keyword=
-    const searchUrl = `https://an1me.to/?s=${query}`; 
-    console.log(`[Extractor] Searching for actual slug: ${searchUrl}`);
-
-    try {
-        const html = await fetchText(searchUrl);
-        const $ = cheerio.load(html);
-        let exactSlug = null;
-
-        // Loop through links to find the first valid show URL.
-        // *NOTE: If this grabs the wrong link first, change 'a' to the specific class of the search results title (e.g. '.result-title a')
-        $('a').each((i, el) => {
-            if (exactSlug) return; 
-            
-            const href = $(el).attr('href');
-            if (!href) return;
-
-            // Scenario 1: Link leads directly to a watch/episode page
-            if (href.includes('/watch/')) {
-                const match = href.match(/\/watch\/([^\/]+)/);
-                if (match) {
-                    // Strip the episode part to get the pure base slug
-                    exactSlug = match[1].replace(/-episode-\d+/i, ''); 
-                }
-            } 
-            // Scenario 2: Link leads to an info/anime page
-            else if (href.includes('/anime/')) {
-                const match = href.match(/\/anime\/([^\/]+)/);
-                if (match) {
-                    exactSlug = match[1];
-                }
-            }
-        });
-
-        if (exactSlug) {
-            console.log(`[Extractor] Search successful! Found exact slug: ${exactSlug}`);
-            return exactSlug;
-        }
-
-        console.log(`[Extractor] Search returned no matching links. Falling back to guessing.`);
-        return fallbackSlugify(title);
-
-    } catch (err) {
-        console.log(`[Extractor] Search network error: ${err.message}. Falling back to guessing.`);
-        return fallbackSlugify(title);
+async function searchAnimeSlug(titleOrExtra) {
+    const titles = [];
+    if (typeof titleOrExtra === 'object' && titleOrExtra !== null) {
+        if (titleOrExtra.title) titles.push(titleOrExtra.title);
+        if (titleOrExtra.name) titles.push(titleOrExtra.name);
+        if (titleOrExtra.originalTitle) titles.push(titleOrExtra.originalTitle);
+    } else if (typeof titleOrExtra === 'string') {
+        titles.push(titleOrExtra);
     }
+
+    const queries = [...new Set(titles.map(t => t.replace(/(Season|Part)\s*\d+/ig, '').trim()))].filter(Boolean);
+
+    for (const baseTitle of queries) {
+        const query = encodeURIComponent(baseTitle);
+        const searchUrl = `https://an1me.to/?s=${query}`; 
+        console.log(`[Extractor] Searching for fallback: ${searchUrl}`);
+
+        try {
+            const html = await fetchText(searchUrl);
+            const $ = cheerio.load(html);
+            let exactSlug = null;
+
+            const targetedLinks = $('article a, .movies-list a, #archive-content a, .result-item a');
+            const elementsToSearch = targetedLinks.length > 0 ? targetedLinks : $('a');
+
+            elementsToSearch.each((i, el) => {
+                if (exactSlug) return; 
+                
+                const href = $(el).attr('href');
+                if (!href || href === '#' || href === '/' || href.includes('javascript:')) return;
+                if (href.includes('?')) return;
+
+                // CRITICAL SAFETY FILTER: Ignore structural layouts like tags/categories completely
+                if (href.includes('/category/') || href.includes('/genre/') || href.includes('/tag/')) return;
+
+                let cleanHref = href.replace('https://an1me.to', '').trim();
+                const segments = cleanHref.split('/').filter(Boolean);
+                
+                if (segments.length === 0) return;
+                
+                let slugCandidate = segments[segments.length - 1];
+                if (slugCandidate.includes('episode-')) {
+                    slugCandidate = slugCandidate.replace(/-episode-\d+/i, '');
+                }
+
+                if (!/^[a-z0-9\-]+$/i.test(slugCandidate)) return;
+
+                const titleWords = baseTitle.toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 2);
+                let isValid = false;
+
+                if (titleWords.length > 0) {
+                    isValid = titleWords.some(word => slugCandidate.toLowerCase().includes(word));
+                } else {
+                    isValid = slugCandidate.toLowerCase().includes(baseTitle.toLowerCase().replace(/[^a-z0-9]/g, ''));
+                }
+
+                if (isValid) {
+                    exactSlug = slugCandidate;
+                }
+            });
+
+            if (exactSlug) {
+                console.log(`[Extractor] Dynamic Search successful! Found validated slug: ${exactSlug}`);
+                return exactSlug;
+            }
+        } catch (err) {
+            console.log(`[Extractor] Search query execution failed for "${baseTitle}": ${err.message}`);
+        }
+    }
+
+    const fallback = fallbackSlugify(titles[0] || 'anime');
+    console.log(`[Extractor] No verified search links matched. Defaulting to fallback guess: ${fallback}`);
+    return fallback;
 }
 
 function extractStreams(slug, episode) {
-    // We now use the resolved 'slug' instead of blindly trusting 'title'
     const url = `https://an1me.to/watch/${slug}-episode-${episode}/`;
     console.log(`[Extractor] Fetching page: ${url}`);
     

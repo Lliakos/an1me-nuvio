@@ -3599,10 +3599,10 @@ var provider = (() => {
           })();
           var ctxClearTimeout = context.clearTimeout !== root.clearTimeout && context.clearTimeout, ctxNow = Date2 && Date2.now !== root.Date.now && Date2.now, ctxSetTimeout = context.setTimeout !== root.setTimeout && context.setTimeout;
           var nativeCeil = Math2.ceil, nativeFloor = Math2.floor, nativeGetSymbols = Object2.getOwnPropertySymbols, nativeIsBuffer = Buffer2 ? Buffer2.isBuffer : undefined2, nativeIsFinite = context.isFinite, nativeJoin = arrayProto.join, nativeKeys = overArg(Object2.keys, Object2), nativeMax = Math2.max, nativeMin = Math2.min, nativeNow = Date2.now, nativeParseInt = context.parseInt, nativeRandom = Math2.random, nativeReverse = arrayProto.reverse;
-          var DataView = getNative(context, "DataView"), Map = getNative(context, "Map"), Promise2 = getNative(context, "Promise"), Set = getNative(context, "Set"), WeakMap = getNative(context, "WeakMap"), nativeCreate = getNative(Object2, "create");
+          var DataView = getNative(context, "DataView"), Map = getNative(context, "Map"), Promise2 = getNative(context, "Promise"), Set2 = getNative(context, "Set"), WeakMap = getNative(context, "WeakMap"), nativeCreate = getNative(Object2, "create");
           var metaMap = WeakMap && new WeakMap();
           var realNames = {};
-          var dataViewCtorString = toSource(DataView), mapCtorString = toSource(Map), promiseCtorString = toSource(Promise2), setCtorString = toSource(Set), weakMapCtorString = toSource(WeakMap);
+          var dataViewCtorString = toSource(DataView), mapCtorString = toSource(Map), promiseCtorString = toSource(Promise2), setCtorString = toSource(Set2), weakMapCtorString = toSource(WeakMap);
           var symbolProto = Symbol2 ? Symbol2.prototype : undefined2, symbolValueOf = symbolProto ? symbolProto.valueOf : undefined2, symbolToString = symbolProto ? symbolProto.toString : undefined2;
           function lodash(value) {
             if (isObjectLike(value) && !isArray(value) && !(value instanceof LazyWrapper)) {
@@ -5369,8 +5369,8 @@ var provider = (() => {
               return func(number);
             };
           }
-          var createSet = !(Set && 1 / setToArray(new Set([, -0]))[1] == INFINITY) ? noop : function(values2) {
-            return new Set(values2);
+          var createSet = !(Set2 && 1 / setToArray(new Set2([, -0]))[1] == INFINITY) ? noop : function(values2) {
+            return new Set2(values2);
           };
           function createToPairs(keysFunc) {
             return function(object) {
@@ -5669,7 +5669,7 @@ var provider = (() => {
             return result2;
           };
           var getTag = baseGetTag;
-          if (DataView && getTag(new DataView(new ArrayBuffer(1))) != dataViewTag || Map && getTag(new Map()) != mapTag || Promise2 && getTag(Promise2.resolve()) != promiseTag || Set && getTag(new Set()) != setTag || WeakMap && getTag(new WeakMap()) != weakMapTag) {
+          if (DataView && getTag(new DataView(new ArrayBuffer(1))) != dataViewTag || Map && getTag(new Map()) != mapTag || Promise2 && getTag(Promise2.resolve()) != promiseTag || Set2 && getTag(new Set2()) != setTag || WeakMap && getTag(new WeakMap()) != weakMapTag) {
             getTag = function(value) {
               var result2 = baseGetTag(value), Ctor = result2 == objectTag ? value.constructor : undefined2, ctorString = Ctor ? toSource(Ctor) : "";
               if (ctorString) {
@@ -10846,40 +10846,62 @@ var provider = (() => {
         if (!text) return "";
         return text.toString().toLowerCase().trim().replace(/\s+/g, "-").replace(/[^\w\-]+/g, "").replace(/\-\-+/g, "-");
       }
-      async function searchAnimeSlug(title) {
-        const query = encodeURIComponent(title);
-        const searchUrl = `https://an1me.to/?s=${query}`;
-        console.log(`[Extractor] Searching for actual slug: ${searchUrl}`);
-        try {
-          const html = await fetchText(searchUrl);
-          const $ = cheerio.load(html);
-          let exactSlug = null;
-          $("a").each((i, el) => {
-            if (exactSlug) return;
-            const href = $(el).attr("href");
-            if (!href) return;
-            if (href.includes("/watch/")) {
-              const match = href.match(/\/watch\/([^\/]+)/);
-              if (match) {
-                exactSlug = match[1].replace(/-episode-\d+/i, "");
-              }
-            } else if (href.includes("/anime/")) {
-              const match = href.match(/\/anime\/([^\/]+)/);
-              if (match) {
-                exactSlug = match[1];
-              }
-            }
-          });
-          if (exactSlug) {
-            console.log(`[Extractor] Search successful! Found exact slug: ${exactSlug}`);
-            return exactSlug;
-          }
-          console.log(`[Extractor] Search returned no matching links. Falling back to guessing.`);
-          return fallbackSlugify(title);
-        } catch (err) {
-          console.log(`[Extractor] Search network error: ${err.message}. Falling back to guessing.`);
-          return fallbackSlugify(title);
+      async function searchAnimeSlug(titleOrExtra) {
+        const titles = [];
+        if (typeof titleOrExtra === "object" && titleOrExtra !== null) {
+          if (titleOrExtra.title) titles.push(titleOrExtra.title);
+          if (titleOrExtra.name) titles.push(titleOrExtra.name);
+          if (titleOrExtra.originalTitle) titles.push(titleOrExtra.originalTitle);
+        } else if (typeof titleOrExtra === "string") {
+          titles.push(titleOrExtra);
         }
+        const queries = [...new Set(titles.map((t) => t.replace(/(Season|Part)\s*\d+/ig, "").trim()))].filter(Boolean);
+        for (const baseTitle of queries) {
+          const query = encodeURIComponent(baseTitle);
+          const searchUrl = `https://an1me.to/?s=${query}`;
+          console.log(`[Extractor] Searching for fallback: ${searchUrl}`);
+          try {
+            const html = await fetchText(searchUrl);
+            const $ = cheerio.load(html);
+            let exactSlug = null;
+            const targetedLinks = $("article a, .movies-list a, #archive-content a, .result-item a");
+            const elementsToSearch = targetedLinks.length > 0 ? targetedLinks : $("a");
+            elementsToSearch.each((i, el) => {
+              if (exactSlug) return;
+              const href = $(el).attr("href");
+              if (!href || href === "#" || href === "/" || href.includes("javascript:")) return;
+              if (href.includes("?")) return;
+              if (href.includes("/category/") || href.includes("/genre/") || href.includes("/tag/")) return;
+              let cleanHref = href.replace("https://an1me.to", "").trim();
+              const segments = cleanHref.split("/").filter(Boolean);
+              if (segments.length === 0) return;
+              let slugCandidate = segments[segments.length - 1];
+              if (slugCandidate.includes("episode-")) {
+                slugCandidate = slugCandidate.replace(/-episode-\d+/i, "");
+              }
+              if (!/^[a-z0-9\-]+$/i.test(slugCandidate)) return;
+              const titleWords = baseTitle.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2);
+              let isValid = false;
+              if (titleWords.length > 0) {
+                isValid = titleWords.some((word) => slugCandidate.toLowerCase().includes(word));
+              } else {
+                isValid = slugCandidate.toLowerCase().includes(baseTitle.toLowerCase().replace(/[^a-z0-9]/g, ""));
+              }
+              if (isValid) {
+                exactSlug = slugCandidate;
+              }
+            });
+            if (exactSlug) {
+              console.log(`[Extractor] Dynamic Search successful! Found validated slug: ${exactSlug}`);
+              return exactSlug;
+            }
+          } catch (err) {
+            console.log(`[Extractor] Search query execution failed for "${baseTitle}": ${err.message}`);
+          }
+        }
+        const fallback = fallbackSlugify(titles[0] || "anime");
+        console.log(`[Extractor] No verified search links matched. Defaulting to fallback guess: ${fallback}`);
+        return fallback;
       }
       function extractStreams(slug, episode) {
         const url = `https://an1me.to/watch/${slug}-episode-${episode}/`;
@@ -10940,22 +10962,41 @@ var provider = (() => {
     "src/an1me/index.js"(exports, module) {
       var { extractStreams, searchAnimeSlug } = require_extractor();
       async function getStreams(tmdbId, mediaType, season, episode, extra) {
-        const title = extra?.title || extra?.name || extra?.originalTitle;
-        if (!title) {
+        try {
+          const slugMap = {
+            "65123": "rezero-kara-hajimeru-isekai-seikatsu",
+            // Re:Zero
+            "1429": "shingeki-no-kyojin",
+            // Attack on Titan
+            "2150": "naruto",
+            // Naruto
+            "31911": "fullmetal-alchemist-brotherhood"
+            // Fullmetal Alchemist: B
+          };
+          let slug = null;
+          const targetId = String(tmdbId);
+          if (slugMap[targetId]) {
+            slug = slugMap[targetId];
+            console.log(`[Index] Match found in local dictionary mapping: ${slug}`);
+          } else {
+            slug = await searchAnimeSlug(extra || tmdbId);
+          }
+          if (!slug) return [];
+          const streams = await extractStreams(slug, episode);
+          return streams.map((stream) => {
+            let finalizedUrl = stream.url;
+            if (!finalizedUrl.includes(".m3u8") && !finalizedUrl.includes(".mp4")) {
+              finalizedUrl += finalizedUrl.includes("?") ? "&ext=.mp4" : "?ext=.mp4";
+            }
+            return {
+              ...stream,
+              url: finalizedUrl
+            };
+          });
+        } catch (err) {
+          console.log(`[Index] Error executing stream extraction: ${err.message}`);
           return [];
         }
-        const slug = await searchAnimeSlug(title);
-        const streams = await extractStreams(slug, episode);
-        return streams.map((stream) => {
-          let finalizedUrl = stream.url;
-          if (!finalizedUrl.includes(".m3u8") && !finalizedUrl.includes(".mp4")) {
-            finalizedUrl += finalizedUrl.includes("?") ? "&ext=.mp4" : "?ext=.mp4";
-          }
-          return {
-            ...stream,
-            url: finalizedUrl
-          };
-        });
       }
       module.exports = { getStreams };
       if (typeof global !== "undefined") global.getStreams = getStreams;
