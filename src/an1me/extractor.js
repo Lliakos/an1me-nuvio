@@ -209,7 +209,16 @@ function extractStreams(slug, episode) {
                                 console.log(`[Extractor] Dropping "${serverName}" — could not resolve.`);
                                 return null;
                             }
-                            return { name: "An1me", title: serverName, url: playableUrl, headers: HEADERS };
+                            // Google CDN blocks requests with a foreign Referer.
+                            // Only send User-Agent — no Referer.
+                            return {
+                                name: "An1me",
+                                title: serverName,
+                                url: playableUrl,
+                                headers: {
+                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                                }
+                            };
                         });
                         promises.push(p);
                     } else {
