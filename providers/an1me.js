@@ -10995,21 +10995,29 @@ var provider = (() => {
           }
           if (!slug) return [];
           const streams = await extractStreams(slug, episode);
-          return streams.map((stream) => {
+          const results = [];
+          for (const stream of streams) {
             let finalizedUrl = stream.url;
-            if (!finalizedUrl.includes(".m3u8") && !finalizedUrl.includes(".mp4")) {
-              if (finalizedUrl.includes("googleusercontent.com") || finalizedUrl.includes("googlevideo.com")) {
-                finalizedUrl += "#.mp4";
-                console.log(`[An1me Provider] Applied Hash Fragment to Google Stream: ${finalizedUrl}`);
-              } else {
-                finalizedUrl += finalizedUrl.includes("?") ? "&ext=.mp4" : "?ext=.mp4";
-              }
+            if (finalizedUrl.includes(".m3u8") || finalizedUrl.includes(".mp4")) {
+              console.log(`[An1me Provider] Clean stream URL, keeping as-is: ${finalizedUrl}`);
+              results.push({ ...stream, url: finalizedUrl });
+              continue;
             }
-            return {
-              ...stream,
-              url: finalizedUrl
-            };
-          });
+            if (finalizedUrl.includes("googleusercontent.com")) {
+              console.log(`[An1me Provider] Direct Google CDN stream, using as-is: ${finalizedUrl}`);
+              results.push({ ...stream, url: finalizedUrl });
+              continue;
+            }
+            if (finalizedUrl.includes("photos.google.com") || finalizedUrl.includes("googlevideo.com")) {
+              console.log(`[An1me Provider] Skipping unresolved Google Photos URL (not playable): ${finalizedUrl}`);
+              continue;
+            }
+            finalizedUrl += finalizedUrl.includes("?") ? "&ext=.mp4" : "?ext=.mp4";
+            console.log(`[An1me Provider] Unknown URL format, appending ext hint: ${finalizedUrl}`);
+            results.push({ ...stream, url: finalizedUrl });
+          }
+          console.log(`[An1me Provider] Returning ${results.length} playable stream(s).`);
+          return results;
         } catch (err) {
           console.log(`[An1me Index Exception] Error: ${err.message}`);
           return [];
