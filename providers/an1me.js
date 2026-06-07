@@ -10829,23 +10829,60 @@ var provider = (() => {
         }
         return output;
       }
+      function fetchTextWithGoogleHeaders(url) {
+        return fetch(url, {
+          method: "GET",
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Cache-Control": "no-cache",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Upgrade-Insecure-Requests": "1"
+            // No Referer — sending an1me.to as referer causes Google to reject the request
+          }
+        }).then((res) => {
+          if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+          return res.text();
+        });
+      }
       function extractGooglePhotosMp4(googlePhotosUrl) {
         console.log(`[Extractor] Fetching actual Google Photos page: ${googlePhotosUrl}`);
-        return fetchText(googlePhotosUrl).then((html) => {
-          const cleanHtml = html.replace(/\\\//g, "/").replace(/\\u0026/g, "&").replace(/\\u003d/g, "=").replace(/\\x3d/g, "=").replace(/\\x26/g, "&");
-          const googleVideoMatch = cleanHtml.match(/(https:\/\/[^\s"'\\]+\.googlevideo\.com\/videoplayback[^\s"'\\]*)/i);
-          if (googleVideoMatch) return googleVideoMatch[1];
-          const gPhotosQualityMatch = cleanHtml.match(/(https:\/\/[^\s"'\\]+\.googleusercontent\.com\/[^\s"'\\]+=m(?:18|22|37)[^\s"'\\]*)/i);
-          if (gPhotosQualityMatch) return gPhotosQualityMatch[1];
-          const gDownloadMatch = cleanHtml.match(/(https:\/\/video-downloads\.googleusercontent\.com\/[^\s"'\\]+)/i);
-          if (gDownloadMatch) return gDownloadMatch[1];
-          const directMatch = cleanHtml.match(/(https?:\/\/[^\s"'\\]+\.(?:mp4|m3u8)[^\s"'\\]*)/i);
-          if (directMatch) return directMatch[1];
-          console.log("[Extractor] Warning: Regex failed to find a stream in the Google Photos HTML.");
-          return googlePhotosUrl;
+        return fetchTextWithGoogleHeaders(googlePhotosUrl).then((html) => {
+          const cleanHtml = html.replace(/\\\//g, "/").replace(/\\u0026/g, "&").replace(/\\u003d/g, "=").replace(/\\u003D/g, "=").replace(/\\u0025/g, "%").replace(/\\x3d/g, "=").replace(/\\x26/g, "&");
+          const gDownloadMatch = cleanHtml.match(/(https:\/\/video-downloads\.googleusercontent\.com\/[A-Za-z0-9_\-]+)/i);
+          if (gDownloadMatch) {
+            console.log(`[Extractor] Found video-downloads CDN URL`);
+            return gDownloadMatch[1];
+          }
+          const googleVideoMatch = cleanHtml.match(/(https:\/\/[a-z0-9\-]+\.googlevideo\.com\/videoplayback[^"'\s\\<>]+)/i);
+          if (googleVideoMatch) {
+            console.log(`[Extractor] Found googlevideo videoplayback URL`);
+            return googleVideoMatch[1];
+          }
+          const gPhotosQualityMatch = cleanHtml.match(/(https:\/\/lh[3-6]\.googleusercontent\.com\/[^"'\s\\<>]+=m(?:18|22|37)[^"'\s\\<>]*)/i);
+          if (gPhotosQualityMatch) {
+            console.log(`[Extractor] Found lh googleusercontent quality URL`);
+            return gPhotosQualityMatch[1];
+          }
+          const gAnyMatch = cleanHtml.match(/(https:\/\/[a-z0-9\-]+\.googleusercontent\.com\/[A-Za-z0-9_\-\/\+\=]+)/i);
+          if (gAnyMatch) {
+            console.log(`[Extractor] Found generic googleusercontent URL`);
+            return gAnyMatch[1];
+          }
+          const directMatch = cleanHtml.match(/(https?:\/\/[^\s"'\\<>]+\.(?:mp4|m3u8)[^\s"'\\<>]*)/i);
+          if (directMatch) {
+            console.log(`[Extractor] Found direct video URL`);
+            return directMatch[1];
+          }
+          console.log("[Extractor] Warning: Could not extract video URL from Google Photos page. Raw share URL will be returned \u2014 this stream will likely not play.");
+          return null;
         }).catch((err) => {
           console.log(`[Extractor] Fetch error on Google Photos: ${err.message}`);
-          return googlePhotosUrl;
+          return null;
         });
       }
       function fallbackSlugify(text) {
@@ -10932,6 +10969,10 @@ var provider = (() => {
                   if (decodedLink.includes("photos.google.com") || decodedLink.includes("photos.app.goo.gl") || decodedLink.includes("googleusercontent.com")) {
                     console.log(`[Extractor] Detected Google Photos server data for: ${serverName}`);
                     const p = extractGooglePhotosMp4(decodedLink).then((playableUrl) => {
+                      if (!playableUrl) {
+                        console.log(`[Extractor] Skipping "${serverName}" \u2014 could not resolve to a playable URL.`);
+                        return null;
+                      }
                       return {
                         name: "An1me",
                         title: serverName,
@@ -10954,7 +10995,7 @@ var provider = (() => {
               console.log("[Extractor] Individual embed compilation error:", e.message);
             }
           });
-          return Promise.all(promises);
+          return Promise.all(promises).then((results) => results.filter(Boolean));
         }).catch((err) => {
           console.log(`[Extractor] Critical Network/HTTP Error: ${err.message}`);
           return [];
@@ -10995,29 +11036,8 @@ var provider = (() => {
           }
           if (!slug) return [];
           const streams = await extractStreams(slug, episode);
-          const results = [];
-          for (const stream of streams) {
-            let finalizedUrl = stream.url;
-            if (finalizedUrl.includes(".m3u8") || finalizedUrl.includes(".mp4")) {
-              console.log(`[An1me Provider] Clean stream URL, keeping as-is: ${finalizedUrl}`);
-              results.push({ ...stream, url: finalizedUrl });
-              continue;
-            }
-            if (finalizedUrl.includes("googleusercontent.com")) {
-              console.log(`[An1me Provider] Direct Google CDN stream, using as-is: ${finalizedUrl}`);
-              results.push({ ...stream, url: finalizedUrl });
-              continue;
-            }
-            if (finalizedUrl.includes("photos.google.com") || finalizedUrl.includes("googlevideo.com")) {
-              console.log(`[An1me Provider] Skipping unresolved Google Photos URL (not playable): ${finalizedUrl}`);
-              continue;
-            }
-            finalizedUrl += finalizedUrl.includes("?") ? "&ext=.mp4" : "?ext=.mp4";
-            console.log(`[An1me Provider] Unknown URL format, appending ext hint: ${finalizedUrl}`);
-            results.push({ ...stream, url: finalizedUrl });
-          }
-          console.log(`[An1me Provider] Returning ${results.length} playable stream(s).`);
-          return results;
+          console.log(`[An1me Provider] Returning ${streams.length} playable stream(s).`);
+          return streams;
         } catch (err) {
           console.log(`[An1me Index Exception] Error: ${err.message}`);
           return [];

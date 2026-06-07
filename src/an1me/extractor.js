@@ -19,35 +19,84 @@ function safeAtob(b64) {
     return output;
 }
 
+function fetchTextWithGoogleHeaders(url) {
+    // Google Photos blocks requests with a site Referer — use neutral browser headers
+    return fetch(url, {
+        method: 'GET',
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Cache-Control': 'no-cache',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Upgrade-Insecure-Requests': '1'
+            // No Referer — sending an1me.to as referer causes Google to reject the request
+        }
+    }).then(res => {
+        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+        return res.text();
+    });
+}
+
 function extractGooglePhotosMp4(googlePhotosUrl) {
     console.log(`[Extractor] Fetching actual Google Photos page: ${googlePhotosUrl}`);
-    return fetchText(googlePhotosUrl)
+    return fetchTextWithGoogleHeaders(googlePhotosUrl)
         .then(html => {
+            // Google Photos embeds video data in a JSON-like structure inside <script> tags.
+            // The video URL is JSON-encoded, so unicode escapes and slashes must be decoded first.
             const cleanHtml = html
                 .replace(/\\\//g, '/')
                 .replace(/\\u0026/g, '&')
                 .replace(/\\u003d/g, '=')
+                .replace(/\\u003D/g, '=')
+                .replace(/\\u0025/g, '%')
                 .replace(/\\x3d/g, '=')
                 .replace(/\\x26/g, '&');
-            
-            const googleVideoMatch = cleanHtml.match(/(https:\/\/[^\s"'\\]+\.googlevideo\.com\/videoplayback[^\s"'\\]*)/i);
-            if (googleVideoMatch) return googleVideoMatch[1];
 
-            const gPhotosQualityMatch = cleanHtml.match(/(https:\/\/[^\s"'\\]+\.googleusercontent\.com\/[^\s"'\\]+=m(?:18|22|37)[^\s"'\\]*)/i);
-            if (gPhotosQualityMatch) return gPhotosQualityMatch[1];
+            // Priority 1: video-downloads CDN (direct mp4, highest quality, most reliable)
+            const gDownloadMatch = cleanHtml.match(/(https:\/\/video-downloads\.googleusercontent\.com\/[A-Za-z0-9_\-]+)/i);
+            if (gDownloadMatch) {
+                console.log(`[Extractor] Found video-downloads CDN URL`);
+                return gDownloadMatch[1];
+            }
 
-            const gDownloadMatch = cleanHtml.match(/(https:\/\/video-downloads\.googleusercontent\.com\/[^\s"'\\]+)/i);
-            if (gDownloadMatch) return gDownloadMatch[1];
+            // Priority 2: googlevideo.com videoplayback (YouTube-style streaming)
+            const googleVideoMatch = cleanHtml.match(/(https:\/\/[a-z0-9\-]+\.googlevideo\.com\/videoplayback[^"'\s\\<>]+)/i);
+            if (googleVideoMatch) {
+                console.log(`[Extractor] Found googlevideo videoplayback URL`);
+                return googleVideoMatch[1];
+            }
 
-            const directMatch = cleanHtml.match(/(https?:\/\/[^\s"'\\]+\.(?:mp4|m3u8)[^\s"'\\]*)/i);
-            if (directMatch) return directMatch[1];
+            // Priority 3: lh3/lh4/lh5/lh6 googleusercontent with video quality params (=m18/m22/m37)
+            const gPhotosQualityMatch = cleanHtml.match(/(https:\/\/lh[3-6]\.googleusercontent\.com\/[^"'\s\\<>]+=m(?:18|22|37)[^"'\s\\<>]*)/i);
+            if (gPhotosQualityMatch) {
+                console.log(`[Extractor] Found lh googleusercontent quality URL`);
+                return gPhotosQualityMatch[1];
+            }
 
-            console.log("[Extractor] Warning: Regex failed to find a stream in the Google Photos HTML.");
-            return googlePhotosUrl;
+            // Priority 4: any googleusercontent video URL
+            const gAnyMatch = cleanHtml.match(/(https:\/\/[a-z0-9\-]+\.googleusercontent\.com\/[A-Za-z0-9_\-\/\+\=]+)/i);
+            if (gAnyMatch) {
+                console.log(`[Extractor] Found generic googleusercontent URL`);
+                return gAnyMatch[1];
+            }
+
+            // Priority 5: any direct .mp4 or .m3u8 link in the page
+            const directMatch = cleanHtml.match(/(https?:\/\/[^\s"'\\<>]+\.(?:mp4|m3u8)[^\s"'\\<>]*)/i);
+            if (directMatch) {
+                console.log(`[Extractor] Found direct video URL`);
+                return directMatch[1];
+            }
+
+            console.log("[Extractor] Warning: Could not extract video URL from Google Photos page. Raw share URL will be returned — this stream will likely not play.");
+            return null; // Signal failure explicitly instead of returning broken URL
         })
         .catch(err => {
             console.log(`[Extractor] Fetch error on Google Photos: ${err.message}`);
-            return googlePhotosUrl;
+            return null; // Signal failure explicitly
         });
 }
 
@@ -167,6 +216,10 @@ function extractStreams(slug, episode) {
                                 console.log(`[Extractor] Detected Google Photos server data for: ${serverName}`);
                                 
                                 const p = extractGooglePhotosMp4(decodedLink).then(playableUrl => {
+                                    if (!playableUrl) {
+                                        console.log(`[Extractor] Skipping "${serverName}" — could not resolve to a playable URL.`);
+                                        return null; // Will be filtered out below
+                                    }
                                     return {
                                         name: "An1me",
                                         title: serverName,
@@ -190,7 +243,7 @@ function extractStreams(slug, episode) {
                 }
             });
 
-            return Promise.all(promises);
+            return Promise.all(promises).then(results => results.filter(Boolean));
         })
         .catch(err => {
             console.log(`[Extractor] Critical Network/HTTP Error: ${err.message}`);
