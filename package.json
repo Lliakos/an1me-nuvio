@@ -23,6 +23,7 @@
     "cheerio-without-node-native": "^0.20.2",
     "esbuild": "^0.28.0",
     "expo": "^56.0.9",
+    "node-fetch": "^2.7.0",
     "react": "19.2.3",
     "react-native": "0.85.3"
   }

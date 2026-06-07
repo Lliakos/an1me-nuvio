@@ -10795,6 +10795,14 @@ var provider = (() => {
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.5"
       };
+      var GOOGLE_HEADERS = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"
+        // No Referer - sending an1me.to as referer causes Google to reject or return shell page
+      };
       function fetchText(url) {
         return fetch(url, {
           method: "GET",
@@ -10804,7 +10812,16 @@ var provider = (() => {
           return res.text();
         });
       }
-      module.exports = { fetchText, HEADERS };
+      function fetchTextGoogle(url) {
+        return fetch(url, {
+          method: "GET",
+          headers: GOOGLE_HEADERS
+        }).then((res) => {
+          if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+          return res.text();
+        });
+      }
+      module.exports = { fetchText, fetchTextGoogle, HEADERS };
     }
   });
 
@@ -10812,7 +10829,7 @@ var provider = (() => {
   var require_extractor = __commonJS({
     "src/an1me/extractor.js"(exports, module) {
       var cheerio = require_cheerio_without_node_native();
-      var { fetchText, HEADERS } = require_http();
+      var { fetchText, fetchTextGoogle, HEADERS } = require_http();
       function safeAtob(b64) {
         const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
         let str = String(b64).replace(/=+$/, "");
@@ -10829,59 +10846,34 @@ var provider = (() => {
         }
         return output;
       }
-      function fetchTextWithGoogleHeaders(url) {
-        return fetch(url, {
-          method: "GET",
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Cache-Control": "no-cache",
-            "Sec-Fetch-Dest": "document",
-            "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "none",
-            "Upgrade-Insecure-Requests": "1"
-            // No Referer — sending an1me.to as referer causes Google to reject the request
-          }
-        }).then((res) => {
-          if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-          return res.text();
-        });
-      }
       function extractGooglePhotosMp4(googlePhotosUrl) {
-        console.log(`[Extractor] Fetching actual Google Photos page: ${googlePhotosUrl}`);
-        return fetchTextWithGoogleHeaders(googlePhotosUrl).then((html) => {
-          const cleanHtml = html.replace(/\\\//g, "/").replace(/\\u0026/g, "&").replace(/\\u003d/g, "=").replace(/\\u003D/g, "=").replace(/\\u0025/g, "%").replace(/\\x3d/g, "=").replace(/\\x26/g, "&");
-          const gDownloadMatch = cleanHtml.match(/(https:\/\/video-downloads\.googleusercontent\.com\/[A-Za-z0-9_\-]+)/i);
-          if (gDownloadMatch) {
-            console.log(`[Extractor] Found video-downloads CDN URL`);
-            return gDownloadMatch[1];
+        console.log(`[Extractor] Fetching Google Photos page: ${googlePhotosUrl}`);
+        return fetchTextGoogle(googlePhotosUrl).then((html) => {
+          const vdMatch = html.match(/https:\/\/video-downloads\.googleusercontent\.com\/[A-Za-z0-9_\-]+/);
+          if (vdMatch) {
+            console.log(`[Extractor] Found video-downloads URL`);
+            return vdMatch[0];
           }
-          const googleVideoMatch = cleanHtml.match(/(https:\/\/[a-z0-9\-]+\.googlevideo\.com\/videoplayback[^"'\s\\<>]+)/i);
-          if (googleVideoMatch) {
-            console.log(`[Extractor] Found googlevideo videoplayback URL`);
-            return googleVideoMatch[1];
+          const decoded = html.replace(/\\u002F/gi, "/").replace(/\\u0026/gi, "&").replace(/\\u003d/gi, "=").replace(/\\u003D/gi, "=");
+          const vdMatch2 = decoded.match(/https:\/\/video-downloads\.googleusercontent\.com\/[A-Za-z0-9_\-]+/);
+          if (vdMatch2) {
+            console.log(`[Extractor] Found video-downloads URL (after decode)`);
+            return vdMatch2[0];
           }
-          const gPhotosQualityMatch = cleanHtml.match(/(https:\/\/lh[3-6]\.googleusercontent\.com\/[^"'\s\\<>]+=m(?:18|22|37)[^"'\s\\<>]*)/i);
-          if (gPhotosQualityMatch) {
-            console.log(`[Extractor] Found lh googleusercontent quality URL`);
-            return gPhotosQualityMatch[1];
+          const gvMatch = decoded.match(/https:\/\/[a-z0-9\-]+\.googlevideo\.com\/videoplayback[^"'\s\\<>]+/i);
+          if (gvMatch) {
+            console.log(`[Extractor] Found googlevideo URL`);
+            return gvMatch[0];
           }
-          const gAnyMatch = cleanHtml.match(/(https:\/\/[a-z0-9\-]+\.googleusercontent\.com\/[A-Za-z0-9_\-\/\+\=]+)/i);
-          if (gAnyMatch) {
+          const gcMatch = decoded.match(/https:\/\/[a-z0-9\-]+\.googleusercontent\.com\/[A-Za-z0-9_\-]{50,}/);
+          if (gcMatch) {
             console.log(`[Extractor] Found generic googleusercontent URL`);
-            return gAnyMatch[1];
+            return gcMatch[0];
           }
-          const directMatch = cleanHtml.match(/(https?:\/\/[^\s"'\\<>]+\.(?:mp4|m3u8)[^\s"'\\<>]*)/i);
-          if (directMatch) {
-            console.log(`[Extractor] Found direct video URL`);
-            return directMatch[1];
-          }
-          console.log("[Extractor] Warning: Could not extract video URL from Google Photos page. Raw share URL will be returned \u2014 this stream will likely not play.");
+          console.log(`[Extractor] HTML length: ${html.length}. No video URL found. Sample: ${html.slice(0, 200)}`);
           return null;
         }).catch((err) => {
-          console.log(`[Extractor] Fetch error on Google Photos: ${err.message}`);
+          console.log(`[Extractor] Google Photos fetch error: ${err.message}`);
           return null;
         });
       }
@@ -10902,7 +10894,7 @@ var provider = (() => {
         for (const baseTitle of queries) {
           const query = encodeURIComponent(baseTitle);
           const searchUrl = `https://an1me.to/?s=${query}`;
-          console.log(`[Extractor] Searching for fallback: ${searchUrl}`);
+          console.log(`[Extractor] Searching: ${searchUrl}`);
           try {
             const html = await fetchText(searchUrl);
             const $ = cheerio.load(html);
@@ -10930,20 +10922,18 @@ var provider = (() => {
               } else {
                 isValid = slugCandidate.toLowerCase().includes(baseTitle.toLowerCase().replace(/[^a-z0-9]/g, ""));
               }
-              if (isValid) {
-                exactSlug = slugCandidate;
-              }
+              if (isValid) exactSlug = slugCandidate;
             });
             if (exactSlug) {
-              console.log(`[Extractor] Dynamic Search successful! Found validated slug: ${exactSlug}`);
+              console.log(`[Extractor] Search found slug: ${exactSlug}`);
               return exactSlug;
             }
           } catch (err) {
-            console.log(`[Extractor] Search query execution failed for "${baseTitle}": ${err.message}`);
+            console.log(`[Extractor] Search failed for "${baseTitle}": ${err.message}`);
           }
         }
         const fallback = fallbackSlugify(titles[0] || "anime");
-        console.log(`[Extractor] No verified search links matched. Defaulting to fallback guess: ${fallback}`);
+        console.log(`[Extractor] Falling back to slugified guess: ${fallback}`);
         return fallback;
       }
       function extractStreams(slug, episode) {
@@ -10961,43 +10951,36 @@ var provider = (() => {
               const serverName = safeAtob(parts[0]).trim();
               const decodedIframe = safeAtob(parts[1]);
               const urlMatch = decodedIframe.match(/src="([^"]+)"/);
-              if (urlMatch) {
-                const embedUrl = urlMatch[1];
-                const krVideoMatch = embedUrl.match(/kr-video\/([^?]+)/);
-                if (krVideoMatch) {
-                  let decodedLink = safeAtob(krVideoMatch[1]);
-                  if (decodedLink.includes("photos.google.com") || decodedLink.includes("photos.app.goo.gl") || decodedLink.includes("googleusercontent.com")) {
-                    console.log(`[Extractor] Detected Google Photos server data for: ${serverName}`);
-                    const p = extractGooglePhotosMp4(decodedLink).then((playableUrl) => {
-                      if (!playableUrl) {
-                        console.log(`[Extractor] Skipping "${serverName}" \u2014 could not resolve to a playable URL.`);
-                        return null;
-                      }
-                      return {
-                        name: "An1me",
-                        title: serverName,
-                        url: playableUrl,
-                        headers: HEADERS
-                      };
-                    });
-                    promises.push(p);
-                  } else {
-                    promises.push(Promise.resolve({
-                      name: "An1me",
-                      title: serverName,
-                      url: decodedLink,
-                      headers: HEADERS
-                    }));
+              if (!urlMatch) return;
+              const embedUrl = urlMatch[1];
+              const krVideoMatch = embedUrl.match(/kr-video\/([^?&#]+)/);
+              if (!krVideoMatch) return;
+              const decodedLink = safeAtob(krVideoMatch[1]);
+              if (decodedLink.includes("photos.google.com") || decodedLink.includes("photos.app.goo.gl") || decodedLink.includes("googleusercontent.com")) {
+                console.log(`[Extractor] Google Photos stream detected: ${serverName}`);
+                const p = extractGooglePhotosMp4(decodedLink).then((playableUrl) => {
+                  if (!playableUrl) {
+                    console.log(`[Extractor] Dropping "${serverName}" \u2014 could not resolve.`);
+                    return null;
                   }
-                }
+                  return { name: "An1me", title: serverName, url: playableUrl, headers: HEADERS };
+                });
+                promises.push(p);
+              } else {
+                promises.push(Promise.resolve({
+                  name: "An1me",
+                  title: serverName,
+                  url: decodedLink,
+                  headers: HEADERS
+                }));
               }
             } catch (e) {
-              console.log("[Extractor] Individual embed compilation error:", e.message);
+              console.log("[Extractor] Embed parse error:", e.message);
             }
           });
           return Promise.all(promises).then((results) => results.filter(Boolean));
         }).catch((err) => {
-          console.log(`[Extractor] Critical Network/HTTP Error: ${err.message}`);
+          console.log(`[Extractor] Page fetch error: ${err.message}`);
           return [];
         });
       }
