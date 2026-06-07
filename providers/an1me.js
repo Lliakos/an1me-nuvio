@@ -10980,66 +10980,38 @@ var provider = (() => {
             "31911": "fullmetal-alchemist-brotherhood"
             // Fullmetal Alchemist: B
           };
-          const titleMap = {
-            "rezero": "rezero-kara-hajimeru-isekai-seikatsu",
-            "rezerostartinglifeinanotherworld": "rezero-kara-hajimeru-isekai-seikatsu",
-            "rezerokarahajimeruisekaiseikatsu": "rezero-kara-hajimeru-isekai-seikatsu",
-            "naruto": "naruto",
-            "attackontitan": "shingeki-no-kyojin",
-            "shingekinokyojin": "shingeki-no-kyojin",
-            "fullmetalalchemistbrotherhood": "fullmetal-alchemist-brotherhood",
-            "fullmetalalchemist": "fullmetal-alchemist-brotherhood"
-          };
           let targetId = "";
           if (tmdbId !== null && tmdbId !== void 0) {
             targetId = String(tmdbId).trim().split(".")[0];
           }
-          let rawTitle = "";
-          if (extra && typeof extra === "object") {
-            rawTitle = extra.title || extra.name || "";
-          } else if (typeof extra === "string") {
-            rawTitle = extra;
-          }
-          if (!rawTitle && tmdbId && typeof tmdbId === "object") {
-            rawTitle = tmdbId.title || tmdbId.name || tmdbId.originalTitle || "";
-          }
-          const cleanTitleKey = rawTitle.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
-          console.log(`[An1me Addon] Routing -> Received ID: "${targetId}", Extracted Title: "${rawTitle}"`);
+          console.log(`[An1me Provider] Received TMDB ID: "${targetId}"`);
           let slug = null;
           if (targetId && slugMap[targetId]) {
             slug = slugMap[targetId];
-            console.log(`[An1me Addon] Success: Linked via ID Map -> "${slug}"`);
-          } else if (cleanTitleKey && titleMap[cleanTitleKey]) {
-            slug = titleMap[cleanTitleKey];
-            console.log(`[An1me Addon] Success: Linked via Title Map -> "${slug}"`);
+            console.log(`[An1me Provider] Dictionary HIT! Using slug: "${slug}"`);
           } else {
-            console.log(`[An1me Addon] Map Miss. Running dynamic live search routine...`);
+            console.log(`[An1me Provider] Dictionary MISS for ID "${targetId}". Running fallback search...`);
             slug = await searchAnimeSlug(extra || tmdbId);
           }
           if (!slug) return [];
           const streams = await extractStreams(slug, episode);
-          const formattedStreams = [];
-          for (const stream of streams) {
+          return streams.map((stream) => {
             let finalizedUrl = stream.url;
-            if (finalizedUrl.includes("photos.google.com") || finalizedUrl.includes("photos.app.goo.gl")) {
-              console.log(`[An1me Addon] Dropped unparsed webpage link to protect player: ${stream.title}`);
-              continue;
-            }
             if (!finalizedUrl.includes(".m3u8") && !finalizedUrl.includes(".mp4")) {
               if (finalizedUrl.includes("googleusercontent.com") || finalizedUrl.includes("googlevideo.com")) {
                 finalizedUrl += "#.mp4";
+                console.log(`[An1me Provider] Applied Hash Fragment to Google Stream: ${finalizedUrl}`);
               } else {
                 finalizedUrl += finalizedUrl.includes("?") ? "&ext=.mp4" : "?ext=.mp4";
               }
             }
-            formattedStreams.push({
+            return {
               ...stream,
               url: finalizedUrl
-            });
-          }
-          return formattedStreams;
+            };
+          });
         } catch (err) {
-          console.log(`[An1me Core Error] Execution halted: ${err.message}`);
+          console.log(`[An1me Index Exception] Error: ${err.message}`);
           return [];
         }
       }
