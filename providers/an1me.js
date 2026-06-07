@@ -10984,25 +10984,26 @@ var provider = (() => {
           if (tmdbId !== null && tmdbId !== void 0) {
             targetId = String(tmdbId).trim().split(".")[0];
           }
-          console.log(`[An1me Provider] Received TMDB ID: "${targetId}" (Type: ${typeof tmdbId}), Season: ${season}, Episode: ${episode}`);
+          console.log(`[An1me Provider] Received TMDB ID: "${targetId}"`);
           let slug = null;
           if (targetId && slugMap[targetId]) {
             slug = slugMap[targetId];
             console.log(`[An1me Provider] Dictionary HIT! Using slug: "${slug}"`);
           } else {
-            console.log(`[An1me Provider] Dictionary MISS for ID "${targetId}". Attempting dynamic search fallback...`);
-            slug = await searchAnimeSlug(extra || tmdbId || String(title));
+            console.log(`[An1me Provider] Dictionary MISS for ID "${targetId}". Running fallback search...`);
+            slug = await searchAnimeSlug(extra || tmdbId);
           }
-          if (!slug) {
-            console.log(`[An1me Provider] Critical Error: Unable to resolve a slug candidate.`);
-            return [];
-          }
+          if (!slug) return [];
           const streams = await extractStreams(slug, episode);
-          console.log(`[An1me Provider] Extraction finished. Found ${streams.length} stream entries.`);
           return streams.map((stream) => {
             let finalizedUrl = stream.url;
             if (!finalizedUrl.includes(".m3u8") && !finalizedUrl.includes(".mp4")) {
-              finalizedUrl += finalizedUrl.includes("?") ? "&ext=.mp4" : "?ext=.mp4";
+              if (finalizedUrl.includes("googleusercontent.com") || finalizedUrl.includes("googlevideo.com")) {
+                finalizedUrl += "#.mp4";
+                console.log(`[An1me Provider] Applied Hash Fragment to Google Stream: ${finalizedUrl}`);
+              } else {
+                finalizedUrl += finalizedUrl.includes("?") ? "&ext=.mp4" : "?ext=.mp4";
+              }
             }
             return {
               ...stream,
@@ -11010,7 +11011,7 @@ var provider = (() => {
             };
           });
         } catch (err) {
-          console.log(`[An1me Index Exception] Error executing stream extraction: ${err.message}`);
+          console.log(`[An1me Index Exception] Error: ${err.message}`);
           return [];
         }
       }
