@@ -18,47 +18,76 @@ function safeAtob(b64) {
     return output;
 }
 
+// Extracts a URL that is terminated by a JSON string boundary.
+// Stops at: " ' \ < > whitespace
+function extractUrlUntilBoundary(html, startIdx) {
+    let url = '';
+    for (let i = startIdx; i < html.length; i++) {
+        const c = html[i];
+        if (c === '"' || c === "'" || c === '\\' || c === '<' || c === '>' || c === ' ' || c === '\n' || c === '\r' || c === '\t') {
+            break;
+        }
+        url += c;
+    }
+    return url;
+}
+
 function extractGooglePhotosMp4(googlePhotosUrl) {
     console.log(`[Extractor] Fetching Google Photos page: ${googlePhotosUrl}`);
     return fetchTextGoogle(googlePhotosUrl)
         .then(html => {
-            // The video URL lives inside a JSON data blob as a plain string terminated by \"
-            // It does NOT need unicode unescaping - it appears as a literal URL
-            // Pattern confirmed from real HTML: ,"https://video-downloads.googleusercontent.com/ADGPM...token"
-            
-            // Priority 1: video-downloads CDN (confirmed present in real HTML)
-            const vdMatch = html.match(/https:\/\/video-downloads\.googleusercontent\.com\/[A-Za-z0-9_\-]+/);
-            if (vdMatch) {
-                console.log(`[Extractor] Found video-downloads URL`);
-                return vdMatch[0];
-            }
-
-            // Priority 2: try with unicode-decoded version (in case of different encoding)
+            // Decode unicode escapes first — Google embeds URLs with \u002F etc.
             const decoded = html
-                .replace(/\\u002F/gi, '/').replace(/\\u0026/gi, '&')
-                .replace(/\\u003d/gi, '=').replace(/\\u003D/gi, '=');
-            
-            const vdMatch2 = decoded.match(/https:\/\/video-downloads\.googleusercontent\.com\/[A-Za-z0-9_\-]+/);
-            if (vdMatch2) {
-                console.log(`[Extractor] Found video-downloads URL (after decode)`);
-                return vdMatch2[0];
+                .replace(/\\u002F/gi, '/')
+                .replace(/\\u0026/gi, '&')
+                .replace(/\\u003d/gi, '=')
+                .replace(/\\u003D/gi, '=')
+                .replace(/\\u003a/gi, ':')
+                .replace(/\\u003A/gi, ':');
+
+            // ── Priority 1: video-downloads CDN ──────────────────────────────
+            // Real token chars: A-Za-z0-9_-~.%=+ (percent-encoded path segments)
+            // We find the start position then grab everything up to a JSON boundary.
+            const VD_PREFIX = 'https://video-downloads.googleusercontent.com/';
+            let idx = decoded.indexOf(VD_PREFIX);
+            if (idx !== -1) {
+                const url = extractUrlUntilBoundary(decoded, idx);
+                if (url.length > VD_PREFIX.length) {
+                    console.log(`[Extractor] Found video-downloads URL`);
+                    return url;
+                }
             }
 
-            // Priority 3: googlevideo streaming URL
-            const gvMatch = decoded.match(/https:\/\/[a-z0-9\-]+\.googlevideo\.com\/videoplayback[^"'\s\\<>]+/i);
+            // Also try the raw (non-decoded) HTML in case the URL itself isn't escaped
+            idx = html.indexOf(VD_PREFIX);
+            if (idx !== -1) {
+                const url = extractUrlUntilBoundary(html, idx);
+                if (url.length > VD_PREFIX.length) {
+                    console.log(`[Extractor] Found video-downloads URL (raw html)`);
+                    return url;
+                }
+            }
+
+            // ── Priority 2: googlevideo streaming URL ─────────────────────────
+            // These look like: https://r3---sn-abc123.googlevideo.com/videoplayback?...
+            const gvMatch = decoded.match(/https:\/\/[a-z0-9\-\.]+-googlevideo\.com\/videoplayback[^"'<>\s\\]+/i)
+                         || decoded.match(/https:\/\/[a-z0-9\-]+\.googlevideo\.com\/videoplayback[^"'<>\s\\]+/i);
             if (gvMatch) {
                 console.log(`[Extractor] Found googlevideo URL`);
                 return gvMatch[0];
             }
 
-            // Priority 4: any googleusercontent with long token
-            const gcMatch = decoded.match(/https:\/\/[a-z0-9\-]+\.googleusercontent\.com\/[A-Za-z0-9_\-]{50,}/);
-            if (gcMatch) {
+            // ── Priority 3: any googleusercontent with a long token ───────────
+            const GUC_PREFIX = 'https://';
+            const gcSearch = decoded.match(/https:\/\/[a-z0-9\-]+\.googleusercontent\.com\/[^"'<>\s\\]{50,}/);
+            if (gcSearch) {
                 console.log(`[Extractor] Found generic googleusercontent URL`);
-                return gcMatch[0];
+                return gcSearch[0];
             }
 
-            console.log(`[Extractor] HTML length: ${html.length}. No video URL found. Sample: ${html.slice(0, 200)}`);
+            // ── Debug: dump a slice of the HTML so you can see what changed ───
+            const sample = decoded.slice(0, 500).replace(/\s+/g, ' ');
+            console.log(`[Extractor] No video URL found. HTML length: ${html.length}. Sample:\n${sample}`);
             return null;
         })
         .catch(err => {

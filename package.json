@@ -26,5 +26,14 @@
     "node-fetch": "^2.7.0",
     "react": "19.2.3",
     "react-native": "0.85.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@babel/plugin-transform-async-to-generator": "^7.29.7",
+    "@babel/plugin-transform-destructuring": "^7.29.7",
+    "@babel/plugin-transform-for-of": "^7.29.7",
+    "@babel/plugin-transform-parameters": "^7.29.7",
+    "@babel/plugin-transform-regenerator": "^7.29.7",
+    "@babel/plugin-transform-spread": "^7.29.7"
   }
 }
