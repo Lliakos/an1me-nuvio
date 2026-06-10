@@ -220,18 +220,32 @@ function extractStreams(slug, episode) {
                                 return null;
                             }
                             return {
-                                name: 'An1me',
-                                title: parsed.serverName,
+                                name: 'An1me - ' + (parsed.serverName || 'Auto'),
+                                title: 'An1me ' + (parsed.serverName || 'Auto'),
                                 url: playableUrl,
-                                headers: PLAYBACK_HEADERS
+                                quality: parsed.serverName || 'Auto',
+                                isM3U8: false,
+                                headers: {
+                                    'User-Agent': PLAYBACK_HEADERS['User-Agent'],
+                                    'Accept': PLAYBACK_HEADERS['Accept'],
+                                    'Accept-Language': PLAYBACK_HEADERS['Accept-Language']
+                                }
                             };
                         });
                 } else {
+                    var isHls = parsed.link.indexOf('.m3u8') !== -1;
                     return Promise.resolve({
-                        name: 'An1me',
-                        title: parsed.serverName,
+                        name: 'An1me - ' + (parsed.serverName || 'Auto'),
+                        title: 'An1me ' + (parsed.serverName || 'Auto'),
                         url: parsed.link,
-                        headers: AN1ME_HEADERS
+                        quality: parsed.serverName || 'Auto',
+                        isM3U8: isHls,
+                        headers: {
+                            'User-Agent': AN1ME_HEADERS['User-Agent'],
+                            'Referer': AN1ME_HEADERS['Referer'],
+                            'Accept': AN1ME_HEADERS['Accept'],
+                            'Accept-Language': AN1ME_HEADERS['Accept-Language']
+                        }
                     });
                 }
             });
@@ -239,6 +253,7 @@ function extractStreams(slug, episode) {
             return Promise.all(promises).then(function(results) {
                 return results.filter(Boolean);
             });
+
         })
         .catch(function(err) {
             console.log('[An1me] Page fetch error: ' + err.message);
@@ -330,22 +345,62 @@ function searchAnimeSlug(titleOrExtra) {
 function getStreams(tmdbId, mediaType, season, episode, extra) {
     var targetId = '';
     if (tmdbId !== null && tmdbId !== undefined) {
-        targetId = String(tmdbId).trim().split('.')[0];
+        // Strip "tmdb:" prefix if Nuvio passes it that way, and strip decimals
+        targetId = String(tmdbId).trim().replace(/^tmdb:/i, '').split('.')[0];
     }
     console.log('[An1me] TMDB ID: "' + targetId + '"');
+
+    function wrapStreams(arr) {
+        return { streams: arr };
+    }
+
+    function doSearch(extraInfo) {
+        return searchAnimeSlug(extraInfo || targetId)
+            .then(function(slug) {
+                if (!slug) return wrapStreams([]);
+                return extractStreams(slug, episode).then(wrapStreams);
+            });
+    }
 
     if (targetId && SLUG_MAP[targetId]) {
         var slug = SLUG_MAP[targetId];
         console.log('[An1me] Dict hit: ' + slug);
-        return extractStreams(slug, episode);
+        return extractStreams(slug, episode).then(wrapStreams);
     }
 
     console.log('[An1me] Dict miss — searching...');
-    return searchAnimeSlug(extra || tmdbId)
-        .then(function(slug) {
-            if (!slug) return [];
-            return extractStreams(slug, episode);
-        });
+
+    // If extra title info was passed, use it directly
+    if (extra && (extra.title || extra.name)) {
+        return doSearch(extra);
+    }
+
+    // Otherwise fetch title from TMDB first so search has something useful
+    if (targetId && targetId !== '0' && targetId !== '00000') {
+        var type = (mediaType === 'movie') ? 'movie' : 'tv';
+        var tmdbUrl = 'https://api.themoviedb.org/3/' + type + '/' + targetId + '?api_key=1865f43a0549ca50d341dd9ab8b29f49';
+        console.log('[An1me] Fetching TMDB title for ID: ' + targetId);
+        return fetchWithTimeout(tmdbUrl, GOOGLE_HEADERS, 8000)
+            .then(function(text) {
+                try {
+                    var info = JSON.parse(text);
+                    var title = info.name || info.title || info.original_name || info.original_title;
+                    if (title) {
+                        console.log('[An1me] TMDB title: ' + title);
+                        return doSearch({ title: title, name: title, originalTitle: info.original_name || info.original_title });
+                    }
+                } catch(e) {
+                    console.log('[An1me] TMDB parse error: ' + e.message);
+                }
+                return doSearch(null);
+            })
+            .catch(function(err) {
+                console.log('[An1me] TMDB fetch error: ' + err.message);
+                return doSearch(null);
+            });
+    }
+
+    return doSearch(null);
 }
 
 module.exports = { getStreams };

@@ -71,8 +71,11 @@ function hr(char = '─', len = 60) { return char.repeat(len); }
 function pad(str, len) { return String(str).padEnd(len); }
 
 function printStreamResult(stream, idx) {
-    console.log(`\n    ${c(BOLD, `Stream ${idx + 1}: ${stream.title || '(no title)'}`)}`);
-    console.log(`    ${c(DIM, 'Provider:')} ${stream.name}`);
+    const label = stream.quality || stream.title || '(no label)';
+    console.log(`\n    ${c(BOLD, `Stream ${idx + 1}: ${label}`)}`);
+    if (stream.isM3U8 !== undefined) {
+        console.log(`    ${c(DIM, 'isM3U8:  ')} ${stream.isM3U8}`);
+    }
 
     if (stream.url) {
         const urlDisplay = stream.url.length > 90
@@ -136,7 +139,10 @@ async function runTest(tc, episode) {
 
     captureStart();
     try {
-        streams = await getStreams(tc.id, 'tv', 1, ep, tc.extra);
+        const result = await getStreams(tc.id, 'tv', 1, ep, tc.extra);
+        // Handle both bare array (old) and { streams: [] } (new Nuvio shape)
+        origLog(c(DIM, '  RAW return: ' + JSON.stringify(result).slice(0, 200)));
+        streams = Array.isArray(result) ? result : (result && result.streams ? result.streams : []);
     } catch (err) {
         error = err;
     }

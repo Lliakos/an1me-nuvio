@@ -54,6 +54,10 @@ async function buildProvider(name) {
     });
 
     let bundled = fs.readFileSync(outfile, 'utf8');
+    // Nuvio calls getStreams() as a bare global. esbuild's IIFE puts it at
+    // provider.getStreams — append a shim that hoists it to global scope.
+    bundled += '\n;if(typeof provider!=="undefined"&&provider.getStreams){var getStreams=provider.getStreams;}\n';
+    fs.writeFileSync(outfile, bundled, 'utf8');
     console.log(`   ✔  Bundled  (${(bundled.length / 1024).toFixed(1)} KB)`);
 
     let transpiled = transpileForHermes(bundled);
