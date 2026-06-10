@@ -1,0 +1,33 @@
+{"_e":"root:init","_t":1780865440619,"format":"v0-jsonl","version":"56.1.14"}
+{"_e":"env:mode","_t":1780865440621,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1780865440625,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1780865441007,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1780865441553,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:instantiate","_t":1780865452415,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1780865467404,"id":"1","platform":"android","environment":null,"entry":"build.js"}
+{"_e":"metro:bundling:progress","_t":1780865467404,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1780865467412,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1780865468359,"id":"1","progress":0.010000000000000002,"total":1,"current":1}
+{"_e":"metro:bundling:failed","_t":1780865468377,"id":"1","message":"You attempted to import the Node standard library module \"path\" from \"build.js\".\nIt failed because the native React runtime does not include the Node standard library.\nLearn more: https://docs.expo.dev/workflow/using-libraries/#using-third-party-libraries\n  1 | const esbuild = require('esbuild');\n  2 | const babel = require('@babel/core');\n> 3 | const path = require('path');\n    |                       ^\n  4 | const fs = require('fs');\n  5 |\n  6 | // ─── Argument Parsing ───────────────────────────────────────────────────────","importStack":"\u001b[1mImport stack:\u001b[22m\n\n\u001b[90m \u001b[39mbuild.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"path\"\u001b[39m\n\n\u001b[90m \u001b[39m\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./build\"\u001b[39m\n","filename":null,"targetModuleName":"path","originModulePath":"build.js"}
+{"_e":"root:init","_t":1780865544276,"format":"v0-jsonl","version":"56.1.14"}
+{"_e":"env:mode","_t":1780865544278,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1780865544281,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1780865544514,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1780865544897,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:instantiate","_t":1780865560814,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"root:init","_t":1780867049537,"format":"v0-jsonl","version":"56.1.14"}
+{"_e":"devserver:start","_t":1780867049565,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1780867050090,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:instantiate","_t":1780867057577,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"root:init","_t":1780867114545,"format":"v0-jsonl","version":"56.1.14"}
+{"_e":"devserver:start","_t":1780867114576,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1780867114973,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:instantiate","_t":1780867123090,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"metro:server_log","_t":1780867350686,"level":"info","data":["Launching DevTools..."]}
+{"_e":"metro:server_log","_t":1780867350698,"level":"warn","data":["No compatible apps connected. React Native DevTools can only be used with the Hermes engine."]}
+{"_e":"root:init","_t":1780867637508,"format":"v0-jsonl","version":"56.1.14"}
+{"_e":"env:mode","_t":1780867637510,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1780867637512,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1780867637692,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1780867637974,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:instantiate","_t":1780867644371,"atlas":false,"workers":6,"host":"::","port":8081}

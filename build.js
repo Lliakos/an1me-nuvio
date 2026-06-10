@@ -4,26 +4,21 @@ const path = require('path');
 const fs = require('fs');
 
 // ─── Argument Parsing ───────────────────────────────────────────────────────
-
 const args = process.argv.slice(2);
 const transpileMode = args.includes('--transpile');
 const minifyMode = args.includes('--minify');
 const watchMode = args.includes('--watch');
 
-// Strip flags to get plain provider names
 const providerArgs = args.filter(a => !a.startsWith('--'));
 
 // ─── Babel: async/await → generators (Hermes-safe) ──────────────────────────
-
 function transpileForHermes(code) {
     const result = babel.transformSync(code, {
         plugins: [
-            // These must run BEFORE regenerator — it can't handle ES6+ syntax
             '@babel/plugin-transform-for-of',
             '@babel/plugin-transform-destructuring',
             '@babel/plugin-transform-parameters',
             '@babel/plugin-transform-spread',
-            // Now it's safe to convert async → generator
             '@babel/plugin-transform-async-to-generator',
             '@babel/plugin-transform-regenerator',
         ],
@@ -36,7 +31,6 @@ function transpileForHermes(code) {
 }
 
 // ─── Build a single src/ provider ───────────────────────────────────────────
-
 async function buildProvider(name) {
     const entryPoint = path.join(__dirname, 'src', name, 'index.js');
     const outfile     = path.join(__dirname, 'providers', `${name}.js`);
@@ -52,21 +46,19 @@ async function buildProvider(name) {
     await esbuild.build({
         entryPoints: [entryPoint],
         bundle: true,
-        minify: false,   // we handle minification below so Babel runs first
+        minify: false,   
         format: 'iife',
         globalName: 'provider',
         outfile,
         external: [],
     });
 
-    // Step 2 — Babel: convert async/await → generators so Hermes can run it
     let bundled = fs.readFileSync(outfile, 'utf8');
     console.log(`   ✔  Bundled  (${(bundled.length / 1024).toFixed(1)} KB)`);
 
     let transpiled = transpileForHermes(bundled);
     console.log(`   ✔  Transpiled async→generator`);
 
-    // Step 3 — Optional minification via esbuild (after Babel so names are real)
     if (minifyMode) {
         const minResult = await esbuild.transform(transpiled, { minify: true });
         transpiled = minResult.code;
@@ -77,10 +69,8 @@ async function buildProvider(name) {
     console.log(`✅  providers/${name}.js ready`);
 }
 
-// ─── Transpile-only mode (single files in providers/) ───────────────────────
-
+// ─── Transpile-only mode ────────────────────────────────────────────────────
 async function transpileFile(nameOrPath) {
-    // Accept "myprovider", "myprovider.js", or "providers/myprovider.js"
     let filePath = nameOrPath;
     if (!filePath.endsWith('.js')) filePath += '.js';
     if (!filePath.includes('/') && !filePath.includes('\\')) {
@@ -112,17 +102,12 @@ async function transpileAll() {
         return;
     }
     const files = fs.readdirSync(providersDir).filter(f => f.endsWith('.js'));
-    if (files.length === 0) {
-        console.log('ℹ️  No .js files found in providers/');
-        return;
-    }
     for (const f of files) {
         await transpileFile(path.join(providersDir, f));
     }
 }
 
 // ─── Build all src/ providers ────────────────────────────────────────────────
-
 async function buildAll() {
     const srcDir = path.join(__dirname, 'src');
     if (!fs.existsSync(srcDir)) {
@@ -130,20 +115,15 @@ async function buildAll() {
         process.exit(1);
     }
     const providers = fs.readdirSync(srcDir).filter(name => {
-        if (name.startsWith('_')) return false; // skip _template etc.
+        if (name.startsWith('_')) return false;
         return fs.statSync(path.join(srcDir, name)).isDirectory();
     });
-    if (providers.length === 0) {
-        console.log('ℹ️  No providers found in src/');
-        return;
-    }
     for (const name of providers) {
         await buildProvider(name);
     }
 }
 
 // ─── Watch mode ─────────────────────────────────────────────────────────────
-
 function startWatch(targets) {
     const chokidar = (() => {
         try { return require('chokidar'); } catch { return null; }
@@ -155,12 +135,9 @@ function startWatch(targets) {
     }
 
     const srcDir = path.join(__dirname, 'src');
-    const watchPaths = targets.length > 0
-        ? targets.map(t => path.join(srcDir, t))
-        : [srcDir];
+    const watchPaths = targets.length > 0 ? targets.map(t => path.join(srcDir, t)) : [srcDir];
 
     console.log('👁️  Watching for changes...');
-
     chokidar.watch(watchPaths, { ignoreInitial: true }).on('change', async (filePath) => {
         const parts = path.relative(srcDir, filePath).split(path.sep);
         const providerName = parts[0];
@@ -171,10 +148,8 @@ function startWatch(targets) {
 }
 
 // ─── Entry point ─────────────────────────────────────────────────────────────
-
 (async () => {
     if (watchMode) {
-        // Build first, then watch
         if (providerArgs.length > 0) {
             for (const name of providerArgs) await buildProvider(name);
         } else {
@@ -193,7 +168,6 @@ function startWatch(targets) {
         return;
     }
 
-    // Default: build mode
     if (providerArgs.length > 0) {
         for (const name of providerArgs) await buildProvider(name);
     } else {
