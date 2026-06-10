@@ -1,3 +1,11 @@
 node_modules/ 
+# Ignore phone log and server file
+phone.log
+server.js
+app.json
+local.properties
+metro.config.js
+
+# Ignore the entire .expo directory
 .expo/
 
