@@ -1,6 +1,6 @@
 {
   "name": "An1me.to Repo",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "scrapers": [
     {
       "id": "an1me",

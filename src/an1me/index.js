@@ -18,17 +18,27 @@ var AN1ME_HEADERS = {
 
 // SLUG_MAP values can be:
 //   - a string: same slug for all seasons
-//   - an object keyed by TMDB season number: { '1': 'slug-s1', '2': 'slug-s2', ... }
+//   - an object keyed by TMDB season number (strings), value is either:
+//       - a string: simple slug
+//       - { slug, splitAfter, next: { slug, offset } }
+//         splitAfter: Nuvio episode number after which we switch to the next slug
+//         next.offset: subtract this from the Nuvio ep number to get the ep on the next slug
 //     Use '*' as a fallback for unmapped seasons
 var SLUG_MAP = {
-    // Re:Zero — each TMDB season maps to a different an1me.to slug
-    // TMDB: S1=25eps, S2=13eps, S3=12eps(2nd season part 2), S4=3rd season, S5=4th season
+    // Re:Zero
+    // Nuvio S2 is one 25-ep season; an1me.to splits it: eps 1-13 on 2nd-season, eps 14-25 on part-2
     '65942': {
         '1': 'rezero-kara-hajimeru-isekai-seikatsu',
-        '2': 'rezero-kara-hajimeru-isekai-seikatsu-2nd-season',
-        '3': 'rezero-kara-hajimeru-isekai-seikatsu-2nd-season-part-2',
-        '4': 'rezero-kara-hajimeru-isekai-seikatsu-3rd-season',
-        '5': 'rezero-kara-hajimeru-isekai-seikatsu-4th-season',
+        '2': {
+            slug: 'rezero-kara-hajimeru-isekai-seikatsu-2nd-season',
+            splitAfter: 13,
+            next: {
+                slug: 'rezero-kara-hajimeru-isekai-seikatsu-2nd-season-part-2',
+                offset: 13
+            }
+        },
+        '3': 'rezero-kara-hajimeru-isekai-seikatsu-3rd-season',
+        '4': 'rezero-kara-hajimeru-isekai-seikatsu-4th-season',
         '*': 'rezero-kara-hajimeru-isekai-seikatsu'
     },
     '65123': 'rezero-kara-hajimeru-isekai-seikatsu',
@@ -45,18 +55,34 @@ var SLUG_MAP = {
     '85937': 'demon-slayer-kimetsu-no-yaiba'
 };
 
-// Resolve a slug from the map given a tmdbId and season number.
-// Returns a string slug or null.
-function resolveSlug(targetId, season) {
+// Returns { slug, episode } after applying any split-season offset logic.
+function resolveSlugAndEp(targetId, season, episode) {
     var entry = SLUG_MAP[targetId];
     if (!entry) return null;
-    if (typeof entry === 'string') return entry;
-    // Object with per-season keys
-    var s = String(season || 1);
-    if (entry[s]) return entry[s];
-    if (entry['*']) return entry['*'];
-    // Fall back to season 1
-    return entry['1'] || null;
+
+    var seasonEntry;
+    if (typeof entry === 'string') {
+        seasonEntry = entry;
+    } else {
+        var s = String(season || 1);
+        seasonEntry = entry[s] || entry['*'] || entry['1'];
+    }
+    if (!seasonEntry) return null;
+
+    // Simple string slug
+    if (typeof seasonEntry === 'string') {
+        return { slug: seasonEntry, episode: episode };
+    }
+
+    // Split-season object: { slug, splitAfter, next: { slug, offset } }
+    var ep = parseInt(episode, 10) || 1;
+    if (seasonEntry.splitAfter && ep > seasonEntry.splitAfter && seasonEntry.next) {
+        var adjustedEp = ep - seasonEntry.next.offset;
+        remoteLog('[An1me] Split: ep ' + ep + ' > splitAfter ' + seasonEntry.splitAfter
+            + ' -> ' + seasonEntry.next.slug + ' ep ' + adjustedEp);
+        return { slug: seasonEntry.next.slug, episode: adjustedEp };
+    }
+    return { slug: seasonEntry.slug, episode: ep };
 }
 
 function plainFetch(url, headers) {
@@ -160,13 +186,13 @@ function resolveViaKrVideoPage(krVideoUrl, serverName) {
                 var label = src.html || ('Quality ' + (i + 1));
                 var t = inferType(src.url);
                 remoteLog('[An1me] Source: ' + label + ' | ' + src.url);
-                // No headers for lh3 — it rejects non-Google Referers
                 streams.push({
                     name: 'An1me - ' + serverName + ' ' + label,
                     title: 'An1me ' + serverName + ' ' + label,
                     url: src.url,
                     quality: label,
                     type: t
+                    // No Referer — lh3 rejects non-Google referrers
                 });
             }
             return streams;
@@ -228,7 +254,10 @@ function extractStreams(slug, episode) {
                 return out;
             });
         })
-        .catch(function(err) { remoteLog('[An1me] Page fetch error: ' + err.message); return []; });
+        .catch(function(err) {
+            remoteLog('[An1me] Page fetch error: ' + err.message);
+            return [];
+        });
 }
 
 function slugify(text) {
@@ -304,10 +333,10 @@ function getStreams(tmdbId, mediaType, season, episode) {
     }
     remoteLog('[An1me] TMDB ID: "' + targetId + '"');
 
-    var slug = resolveSlug(targetId, season);
-    if (slug) {
-        remoteLog('[An1me] Dict hit: ' + slug + ' (s=' + season + ')');
-        return extractStreamsWithFallback(slug, episode);
+    var resolved = resolveSlugAndEp(targetId, season, episode);
+    if (resolved) {
+        remoteLog('[An1me] Dict hit: ' + resolved.slug + ' ep=' + resolved.episode + ' (s=' + season + ')');
+        return extractStreamsWithFallback(resolved.slug, resolved.episode);
     }
 
     remoteLog('[An1me] Dict miss - searching...');

@@ -32,14 +32,20 @@
         "Accept-Language": "en-US,en;q=0.9"
       };
       var SLUG_MAP = {
-        // Re:Zero — each TMDB season maps to a different an1me.to slug
-        // TMDB: S1=25eps, S2=13eps, S3=12eps(2nd season part 2), S4=3rd season, S5=4th season
+        // Re:Zero
+        // Nuvio S2 is one 25-ep season; an1me.to splits it: eps 1-13 on 2nd-season, eps 14-25 on part-2
         "65942": {
           "1": "rezero-kara-hajimeru-isekai-seikatsu",
-          "2": "rezero-kara-hajimeru-isekai-seikatsu-2nd-season",
-          "3": "rezero-kara-hajimeru-isekai-seikatsu-2nd-season-part-2",
-          "4": "rezero-kara-hajimeru-isekai-seikatsu-3rd-season",
-          "5": "rezero-kara-hajimeru-isekai-seikatsu-4th-season",
+          "2": {
+            slug: "rezero-kara-hajimeru-isekai-seikatsu-2nd-season",
+            splitAfter: 13,
+            next: {
+              slug: "rezero-kara-hajimeru-isekai-seikatsu-2nd-season-part-2",
+              offset: 13
+            }
+          },
+          "3": "rezero-kara-hajimeru-isekai-seikatsu-3rd-season",
+          "4": "rezero-kara-hajimeru-isekai-seikatsu-4th-season",
           "*": "rezero-kara-hajimeru-isekai-seikatsu"
         },
         "65123": "rezero-kara-hajimeru-isekai-seikatsu",
@@ -54,14 +60,36 @@
         "71725": "jujutsu-kaisen",
         "85937": "demon-slayer-kimetsu-no-yaiba"
       };
-      function resolveSlug(targetId, season) {
+      function resolveSlugAndEp(targetId, season, episode) {
         var entry = SLUG_MAP[targetId];
         if (!entry) return null;
-        if (typeof entry === "string") return entry;
-        var s = String(season || 1);
-        if (entry[s]) return entry[s];
-        if (entry["*"]) return entry["*"];
-        return entry["1"] || null;
+        var seasonEntry;
+        if (typeof entry === "string") {
+          seasonEntry = entry;
+        } else {
+          var s = String(season || 1);
+          seasonEntry = entry[s] || entry["*"] || entry["1"];
+        }
+        if (!seasonEntry) return null;
+        if (typeof seasonEntry === "string") {
+          return {
+            slug: seasonEntry,
+            episode: episode
+          };
+        }
+        var ep = parseInt(episode, 10) || 1;
+        if (seasonEntry.splitAfter && ep > seasonEntry.splitAfter && seasonEntry.next) {
+          var adjustedEp = ep - seasonEntry.next.offset;
+          remoteLog("[An1me] Split: ep " + ep + " > splitAfter " + seasonEntry.splitAfter + " -> " + seasonEntry.next.slug + " ep " + adjustedEp);
+          return {
+            slug: seasonEntry.next.slug,
+            episode: adjustedEp
+          };
+        }
+        return {
+          slug: seasonEntry.slug,
+          episode: ep
+        };
       }
       function plainFetch(url, headers) {
         return fetch(url, {
@@ -177,6 +205,7 @@
               url: src.url,
               quality: label,
               type: t
+              // No Referer — lh3 rejects non-Google referrers
             });
           }
           return streams;
@@ -311,10 +340,10 @@
           targetId = String(tmdbId).trim().replace(/^tmdb:/i, "").split(".")[0];
         }
         remoteLog('[An1me] TMDB ID: "' + targetId + '"');
-        var slug = resolveSlug(targetId, season);
-        if (slug) {
-          remoteLog("[An1me] Dict hit: " + slug + " (s=" + season + ")");
-          return extractStreamsWithFallback(slug, episode);
+        var resolved = resolveSlugAndEp(targetId, season, episode);
+        if (resolved) {
+          remoteLog("[An1me] Dict hit: " + resolved.slug + " ep=" + resolved.episode + " (s=" + season + ")");
+          return extractStreamsWithFallback(resolved.slug, resolved.episode);
         }
         remoteLog("[An1me] Dict miss - searching...");
         if (targetId && targetId !== "0") {
