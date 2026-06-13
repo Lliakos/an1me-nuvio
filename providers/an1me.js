@@ -35,8 +35,7 @@
         "Accept-Language": "en-US,en;q=0.9"
       };
       var SLUG_MAP = {
-        // Re:Zero
-        // Nuvio S2 is one 25-ep season; an1me.to splits it: eps 1-13 on 2nd-season, eps 14-25 on part-2
+        // Re:Zero (65942) — S2 is split on an1me.to at ep13
         "65942": {
           "1": "rezero-kara-hajimeru-isekai-seikatsu",
           "2": {
@@ -52,15 +51,44 @@
           "*": "rezero-kara-hajimeru-isekai-seikatsu"
         },
         "65123": "rezero-kara-hajimeru-isekai-seikatsu",
-        // Single-season shows
+        // Frieren (209867) — Japanese title on an1me.to
+        "209867": "sousou-no-frieren",
+        // That Time I Got Reincarnated as a Slime (82684)
+        // TMDB keeps all seasons under one show ID
+        // an1me.to splits them into separate slugs per season/part
+        "82684": {
+          "1": "tensei-shitara-slime-datta-ken",
+          "2": {
+            slug: "tensei-shitara-slime-datta-ken-2nd-season",
+            splitAfter: 12,
+            next: {
+              slug: "tensei-shitara-slime-datta-ken-2nd-season-part-2",
+              offset: 12
+            }
+          },
+          "3": "tensei-shitara-slime-datta-ken-3rd-season",
+          "4": "tensei-shitara-slime-datta-ken-4th-season",
+          "*": "tensei-shitara-slime-datta-ken"
+        },
+        // Black Clover (73223) — English title on an1me.to
+        "73223": "black-clover",
+        // Attack on Titan (1429)
         "1429": "shingeki-no-kyojin",
+        // Naruto (46260)
         "46260": "naruto",
+        // FMA Brotherhood (31911)
         "31911": "fullmetal-alchemist-brotherhood",
+        // Bleach (30984)
         "30984": "bleach",
+        // Dragon Ball Z (46298)
         "46298": "dragon-ball-z",
+        // One Piece (37854)
         "37854": "one-piece",
+        // Death Note (13916)
         "13916": "death-note",
+        // Jujutsu Kaisen (71725)
         "71725": "jujutsu-kaisen",
+        // Demon Slayer (85937)
         "85937": "demon-slayer-kimetsu-no-yaiba"
       };
       function resolveSlugAndEp(targetId, season, episode) {
@@ -74,19 +102,17 @@
           seasonEntry = entry[s] || entry["*"] || entry["1"];
         }
         if (!seasonEntry) return null;
-        if (typeof seasonEntry === "string") {
-          return {
-            slug: seasonEntry,
-            episode: episode
-          };
-        }
+        if (typeof seasonEntry === "string") return {
+          slug: seasonEntry,
+          episode: episode
+        };
         var ep = parseInt(episode, 10) || 1;
         if (seasonEntry.splitAfter && ep > seasonEntry.splitAfter && seasonEntry.next) {
-          var adjustedEp = ep - seasonEntry.next.offset;
-          remoteLog("[An1me] Split: ep " + ep + " > splitAfter " + seasonEntry.splitAfter + " -> " + seasonEntry.next.slug + " ep " + adjustedEp);
+          var adj = ep - seasonEntry.next.offset;
+          remoteLog("[An1me] Split: ep " + ep + " -> " + seasonEntry.next.slug + " ep " + adj);
           return {
             slug: seasonEntry.next.slug,
-            episode: adjustedEp
+            episode: adj
           };
         }
         return {
@@ -191,7 +217,7 @@
           remoteLog("[An1me] kr-video page: " + html.length + " bytes");
           var sources = extractParamsSources(html);
           if (!sources) {
-            remoteLog("[An1me] kr-video: no params.sources found");
+            remoteLog("[An1me] kr-video: no sources");
             return [];
           }
           remoteLog("[An1me] kr-video: found " + sources.length + " source(s)");
@@ -200,20 +226,18 @@
             var src = sources[i];
             if (!src.url) continue;
             var label = src.html || "Quality " + (i + 1);
-            var t = inferType(src.url);
-            remoteLog("[An1me] Source: " + label + " | " + src.url);
             streams.push({
               name: "An1me - " + serverName + " " + label,
               title: "An1me " + serverName + " " + label,
               url: src.url,
               quality: label,
-              type: t
+              type: inferType(src.url)
               // No Referer — lh3 rejects non-Google referrers
             });
           }
           return streams;
         }).catch(function (err) {
-          remoteLog("[An1me] kr-video fetch error: " + err.message);
+          remoteLog("[An1me] kr-video error: " + err.message);
           return [];
         });
       }
@@ -232,10 +256,9 @@
           var promises = embeds.map(function (data, i) {
             var parsed = processEmbed(data);
             if (!parsed || !parsed.directUrl) return Promise.resolve([]);
-            remoteLog("[An1me] Embed[" + i + "]: " + parsed.serverName + " | google=" + parsed.isGoogle + " | url=" + parsed.directUrl.slice(0, 70));
+            remoteLog("[An1me] Embed[" + i + "]: " + parsed.serverName + " google=" + parsed.isGoogle);
             if (!parsed.isGoogle) {
               var t = inferType(parsed.directUrl);
-              remoteLog("[An1me] Direct CDN: " + parsed.serverName + " type=" + t);
               return Promise.resolve([{
                 name: "An1me - " + parsed.serverName,
                 title: "An1me " + parsed.serverName,
@@ -269,57 +292,56 @@
       function slugify(text) {
         return text.toString().toLowerCase().trim().replace(/\s+/g, "-").replace(/[^\w\-]+/g, "").replace(/\-\-+/g, "-");
       }
-      function searchAnimeSlug(titleOrExtra) {
-        var titles = [];
-        if (typeof titleOrExtra === "object" && titleOrExtra !== null) {
-          if (titleOrExtra.title) titles.push(titleOrExtra.title);
-          if (titleOrExtra.name) titles.push(titleOrExtra.name);
-          if (titleOrExtra.originalTitle) titles.push(titleOrExtra.originalTitle);
-        } else if (typeof titleOrExtra === "string") {
-          titles.push(titleOrExtra);
-        }
-        var queries = [];
-        for (var qi = 0; qi < titles.length; qi++) {
-          var t = titles[qi].replace(/(Season|Part)\s*\d+/ig, "").replace(/:\s*$/, "").trim();
-          if (t && queries.indexOf(t) === -1) queries.push(t);
-        }
-        function tryNext(i) {
-          if (i >= queries.length) {
-            var fb = slugify(titles[0] || "anime");
-            remoteLog("[An1me] Search exhausted, fallback: " + fb);
-            return Promise.resolve(fb);
-          }
-          var baseTitle = queries[i];
-          var searchUrl = "https://an1me.to/?s=" + encodeURIComponent(baseTitle);
-          remoteLog("[An1me] Searching: " + searchUrl);
-          return plainFetch(searchUrl, AN1ME_HEADERS).then(function (html) {
-            var hrefRe = /href=["']([^"']+)["']/g;
-            var m;
-            var found = null;
-            var titleWords = baseTitle.toLowerCase().split(/[^a-z0-9]+/).filter(function (w) {
-              return w.length > 2;
-            });
-            while ((m = hrefRe.exec(html)) !== null && !found) {
-              var href = m[1];
-              if (!href || href === "#" || href === "/" || href.indexOf("javascript:") !== -1 || href.indexOf("?") !== -1) continue;
-              var clean = href.replace("https://an1me.to", "").trim();
-              var animeMatch = clean.match(/^\/anime\/([a-z0-9\-]+)\/?$/i);
-              var watchMatch = clean.match(/^\/watch\/([a-z0-9\-]+)-episode-\d+\/?$/i);
-              var candidate = animeMatch ? animeMatch[1] : watchMatch ? watchMatch[1] : null;
-              if (!candidate) continue;
-              for (var wi = 0; wi < titleWords.length; wi++) {
-                if (candidate.toLowerCase().indexOf(titleWords[wi]) !== -1) {
-                  found = candidate;
-                  break;
-                }
+      function searchForSlug(title) {
+        var searchUrl = "https://an1me.to/?s=" + encodeURIComponent(title);
+        remoteLog("[An1me] Searching: " + searchUrl);
+        return plainFetch(searchUrl, AN1ME_HEADERS).then(function (html) {
+          var hrefRe = /href=["']([^"']+)["']/g;
+          var m;
+          var titleWords = title.toLowerCase().split(/[^a-z0-9]+/).filter(function (w) {
+            return w.length > 2;
+          });
+          var found = null;
+          while ((m = hrefRe.exec(html)) !== null && !found) {
+            var href = m[1];
+            if (!href || href === "#" || href === "/" || href.indexOf("javascript:") !== -1 || href.indexOf("?") !== -1) continue;
+            var clean = href.replace("https://an1me.to", "").trim();
+            var animeMatch = clean.match(/^\/anime\/([a-z0-9\-]+)\/?$/i);
+            var watchMatch = clean.match(/^\/watch\/([a-z0-9\-]+)-episode-\d+\/?$/i);
+            var candidate = animeMatch ? animeMatch[1] : watchMatch ? watchMatch[1] : null;
+            if (!candidate) continue;
+            for (var wi = 0; wi < titleWords.length; wi++) {
+              if (candidate.toLowerCase().indexOf(titleWords[wi]) !== -1) {
+                found = candidate;
+                break;
               }
             }
+          }
+          return found || null;
+        }).catch(function () {
+          return null;
+        });
+      }
+      function searchAnimeSlug(info) {
+        var english = info && (info.title || info.name) || "";
+        var original = info && info.originalTitle || "";
+        var queries = [];
+        if (english) queries.push(english);
+        if (original && original !== english) queries.push(original);
+        var cleaned = english.replace(/:\s*.+$/, "").replace(/(Season|Part)\s*\d+/ig, "").trim();
+        if (cleaned && cleaned !== english && queries.indexOf(cleaned) === -1) queries.push(cleaned);
+        function tryNext(i) {
+          if (i >= queries.length) {
+            var fb = slugify(english || original || "anime");
+            remoteLog("[An1me] Search exhausted, fallback slug: " + fb);
+            return Promise.resolve(fb);
+          }
+          return searchForSlug(queries[i]).then(function (found) {
             if (found) {
-              remoteLog("[An1me] Found slug: " + found);
+              remoteLog('[An1me] Search hit "' + queries[i] + '" -> ' + found);
               return found;
             }
-            return tryNext(i + 1);
-          }).catch(function () {
+            remoteLog("[An1me] Search miss: " + queries[i]);
             return tryNext(i + 1);
           });
         }
@@ -348,11 +370,10 @@
           remoteLog("[An1me] Dict hit: " + resolved.slug + " ep=" + resolved.episode + " (s=" + season + ")");
           return extractStreamsWithFallback(resolved.slug, resolved.episode);
         }
-        remoteLog("[An1me] Dict miss - searching...");
+        remoteLog("[An1me] Dict miss - fetching TMDB metadata...");
         if (targetId && targetId !== "0") {
           var mtype = mediaType === "movie" ? "movie" : "tv";
           var tmdbUrl = "https://api.themoviedb.org/3/" + mtype + "/" + targetId + "?api_key=1865f43a0549ca50d341dd9ab8b29f49";
-          remoteLog("[An1me] Fetching TMDB title for: " + targetId);
           return fetch(tmdbUrl, {
             method: "GET",
             headers: AN1ME_HEADERS,
@@ -360,22 +381,22 @@
           }).then(function (res) {
             return res.text();
           }).then(function (text) {
+            var info = {
+              title: "",
+              originalTitle: ""
+            };
             try {
-              var info = JSON.parse(text);
-              var title = info.name || info.title || info.original_name || info.original_title;
-              if (title) {
-                remoteLog("[An1me] TMDB title: " + title);
-                return searchAnimeSlug({
-                  title: title,
-                  name: title
-                }).then(function (foundSlug) {
-                  return foundSlug ? extractStreamsWithFallback(foundSlug, episode) : [];
-                });
-              }
+              var data = JSON.parse(text);
+              info.title = data.name || data.title || "";
+              info.originalTitle = data.original_name || data.original_title || "";
+              remoteLog('[An1me] TMDB: title="' + info.title + '" original="' + info.originalTitle + '"');
             } catch (e) {
               remoteLog("[An1me] TMDB parse error: " + e.message);
             }
-            return [];
+            if (!info.title && !info.originalTitle) return [];
+            return searchAnimeSlug(info).then(function (slug) {
+              return slug ? extractStreamsWithFallback(slug, episode) : [];
+            });
           }).catch(function (err) {
             remoteLog("[An1me] TMDB fetch error: " + err.message);
             return [];

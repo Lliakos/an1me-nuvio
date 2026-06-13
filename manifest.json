@@ -1,11 +1,11 @@
 {
-  "name": "An1me.to Repo",
-  "version": "1.2.1",
+  "name": "Philip's Repo",
+  "version": "1.2.2",
   "scrapers": [
     {
       "id": "an1me",
       "name": "An1me.to",
-      "description": "Ελληνικά anime με υπότιτλους και μεταγλωττισμένα από το an1me.to",
+      "description": "Ελληνικά anime με υπότιτλους από το an1me.to",
       "version": "1.2.1",
       "author": "Lliakos",
       "supportedTypes": ["series", "tv", "movie", "anime"],
