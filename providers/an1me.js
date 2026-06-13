@@ -11,9 +11,12 @@
   // src/an1me/index.js
   var require_index = __commonJS({
     "src/an1me/index.js": function (exports, module) {
+      var DEBUG = false;
+      var LOG_URL = "http://192.168.2.15:3000/log";
       function remoteLog(msg) {
+        if (!DEBUG) return;
         try {
-          var p = fetch("http://192.168.2.15:3000/log", {
+          var p = fetch(LOG_URL, {
             method: "POST",
             headers: {
               "Content-Type": "text/plain"
