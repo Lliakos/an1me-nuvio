@@ -1,1 +1,27 @@
-=== LOG SESSION STARTED AT 10/6/2026, 7:33:28 μ.μ. ===
+=== LOG SESSION STARTED AT 13/6/2026, 10:20:55 π.μ. ===
+[13/6/2026, 10:21:15 π.μ.] [An1me] getStreams called | id=65942 type=tv s=2 ep=13
+[13/6/2026, 10:21:15 π.μ.] [An1me] TMDB ID: "65942"
+[13/6/2026, 10:21:15 π.μ.] [An1me] Dict hit: rezero-kara-hajimeru-isekai-seikatsu
+[13/6/2026, 10:21:15 π.μ.] [An1me] Fetching: https://an1me.to/watch/rezero-kara-hajimeru-isekai-seikatsu-episode-13/
+[13/6/2026, 10:21:15 π.μ.] [An1me] Page: 182281 bytes
+[13/6/2026, 10:21:15 π.μ.] [An1me] Found 1 embed(s)
+[13/6/2026, 10:21:15 π.μ.] [An1me] Embed[0]: Alpha Serversub | google=true | url=https://photos.google.com/share/AF1QipNeI7oaF5fqk1fGIFxfpiUFQA5JAlJfVq
+[13/6/2026, 10:21:15 π.μ.] [An1me] Fetching kr-video page for: Alpha Serversub
+[13/6/2026, 10:21:15 π.μ.] [An1me] kr-video page: 37521 bytes
+[13/6/2026, 10:21:15 π.μ.] [An1me] kr-video: found 2 source(s)
+[13/6/2026, 10:21:15 π.μ.] [An1me] Source: 720p | https://lh3.googleusercontent.com/pw/AP1GczMwJL3N3dSvIxikqFIoiwZ8jlkqrLJEhOEG3DrfxSciCU8-uF3j-qi-eV7fg0kaP6iRQOW4orU2_sexHeXiNcaVdJRtlFb1bg5Hlr_1lmwkTZvkLA=m22
+[13/6/2026, 10:21:16 π.μ.] [An1me] Source: 360p | https://lh3.googleusercontent.com/pw/AP1GczMwJL3N3dSvIxikqFIoiwZ8jlkqrLJEhOEG3DrfxSciCU8-uF3j-qi-eV7fg0kaP6iRQOW4orU2_sexHeXiNcaVdJRtlFb1bg5Hlr_1lmwkTZvkLA=m18
+[13/6/2026, 10:21:16 π.μ.] [An1me] Returning 2 stream(s)
+[13/6/2026, 10:55:49 π.μ.] [An1me] getStreams called | id=65942 type=tv s=1 ep=1
+[13/6/2026, 10:55:49 π.μ.] [An1me] TMDB ID: "65942"
+[13/6/2026, 10:55:49 π.μ.] [An1me] Dict hit: rezero-kara-hajimeru-isekai-seikatsu
+[13/6/2026, 10:55:49 π.μ.] [An1me] Fetching: https://an1me.to/watch/rezero-kara-hajimeru-isekai-seikatsu-episode-1/
+[13/6/2026, 10:55:49 π.μ.] [An1me] Page: 182185 bytes
+[13/6/2026, 10:55:49 π.μ.] [An1me] Found 1 embed(s)
+[13/6/2026, 10:55:49 π.μ.] [An1me] Embed[0]: Alpha Serversub | google=true | url=https://photos.google.com/share/AF1QipNeI7oaF5fqk1fGIFxfpiUFQA5JAlJfVq
+[13/6/2026, 10:55:49 π.μ.] [An1me] Fetching kr-video page for: Alpha Serversub
+[13/6/2026, 10:55:49 π.μ.] [An1me] kr-video page: 37521 bytes
+[13/6/2026, 10:55:49 π.μ.] [An1me] kr-video: found 2 source(s)
+[13/6/2026, 10:55:49 π.μ.] [An1me] Source: 720p | https://lh3.googleusercontent.com/pw/AP1GczPQvPbBSYJEtNg9hMOvDBLdy8fMcKQMKk_AAK5lv3WdmpFBb-N51iffcidhnENY-oJFxzq9gaA_ffDoOrWJCZC7K51pfASUS8-cso4y8_vzb0bNNg=m22
+[13/6/2026, 10:55:49 π.μ.] [An1me] Source: 360p | https://lh3.googleusercontent.com/pw/AP1GczPQvPbBSYJEtNg9hMOvDBLdy8fMcKQMKk_AAK5lv3WdmpFBb-N51iffcidhnENY-oJFxzq9gaA_ffDoOrWJCZC7K51pfASUS8-cso4y8_vzb0bNNg=m18
+[13/6/2026, 10:55:49 π.μ.] [An1me] Returning 2 stream(s)

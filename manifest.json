@@ -1,12 +1,12 @@
 {
   "name": "An1me.to Repo",
-  "version": "1.1.15",
+  "version": "1.2.0",
   "scrapers": [
     {
       "id": "an1me",
       "name": "An1me.to",
       "description": "Ελληνικά anime με υπότιτλους και μεταγλωττισμένα από το an1me.to",
-      "version": "1.1.15",
+      "version": "1.2.0",
       "author": "Lliakos",
       "supportedTypes": ["series", "tv", "movie", "anime"],
       "filename": "providers/an1me.js",

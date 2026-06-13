@@ -15,6 +15,9 @@ const providerArgs = args.filter(a => !a.startsWith('--'));
 function transpileForHermes(code) {
     const result = babel.transformSync(code, {
         plugins: [
+            '@babel/plugin-transform-arrow-functions',
+            '@babel/plugin-transform-block-scoping',
+            '@babel/plugin-transform-shorthand-properties',
             '@babel/plugin-transform-for-of',
             '@babel/plugin-transform-destructuring',
             '@babel/plugin-transform-parameters',
@@ -46,18 +49,16 @@ async function buildProvider(name) {
     await esbuild.build({
         entryPoints: [entryPoint],
         bundle: true,
-        minify: false,   
+        minify: false,
         format: 'iife',
-        globalName: 'provider',
+        // No globalName — we handle exports inside index.js directly
+        // so esbuild won't wrap in __commonJS which breaks in Nuvio
         outfile,
         external: [],
+        target: ['es5'],
     });
 
     let bundled = fs.readFileSync(outfile, 'utf8');
-    // Nuvio calls getStreams() as a bare global. esbuild's IIFE puts it at
-    // provider.getStreams — append a shim that hoists it to global scope.
-    bundled += '\n;if(typeof provider!=="undefined"&&provider.getStreams){var getStreams=provider.getStreams;}\n';
-    fs.writeFileSync(outfile, bundled, 'utf8');
     console.log(`   ✔  Bundled  (${(bundled.length / 1024).toFixed(1)} KB)`);
 
     let transpiled = transpileForHermes(bundled);

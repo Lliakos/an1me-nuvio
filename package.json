@@ -5,7 +5,8 @@
   "main": "build.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "http-server providers -p 3000 --cors"
+    "start": "http-server providers -p 3000 --cors",
+    "build": "node build.js"
   },
   "repository": {
     "type": "git",
@@ -22,7 +23,6 @@
   "dependencies": {
     "axios": "^1.17.0",
     "cheerio-without-node-native": "^0.20.2",
-    "esbuild": "^0.28.0",
     "expo": "^56.0.9",
     "node-fetch": "^2.7.0",
     "react": "19.2.3",
@@ -30,12 +30,17 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
+    "@babel/plugin-transform-arrow-functions": "^7.29.7",
     "@babel/plugin-transform-async-to-generator": "^7.29.7",
+    "@babel/plugin-transform-block-scoping": "^7.29.7",
     "@babel/plugin-transform-destructuring": "^7.29.7",
     "@babel/plugin-transform-for-of": "^7.29.7",
     "@babel/plugin-transform-parameters": "^7.29.7",
     "@babel/plugin-transform-regenerator": "^7.29.7",
+    "@babel/plugin-transform-shorthand-properties": "^7.29.7",
     "@babel/plugin-transform-spread": "^7.29.7",
+    "@babel/preset-env": "^7.29.7",
+    "esbuild": "^0.28.0",
     "http-server": "^14.1.1"
   }
 }
