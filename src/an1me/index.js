@@ -1,6 +1,10 @@
+var DEBUG = false; // Set to true and update LOG_URL when debugging locally
+var LOG_URL = 'http://192.168.2.15:3000/log';
+
 function remoteLog(msg) {
+    if (!DEBUG) return;
     try {
-        var p = fetch('http://192.168.2.15:3000/log', {
+        var p = fetch(LOG_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
             body: msg
@@ -69,12 +73,11 @@ function resolveSlugAndEp(targetId, season, episode) {
     }
     if (!seasonEntry) return null;
 
-    // Simple string slug
     if (typeof seasonEntry === 'string') {
         return { slug: seasonEntry, episode: episode };
     }
 
-    // Split-season object: { slug, splitAfter, next: { slug, offset } }
+    // Split-season object
     var ep = parseInt(episode, 10) || 1;
     if (seasonEntry.splitAfter && ep > seasonEntry.splitAfter && seasonEntry.next) {
         var adjustedEp = ep - seasonEntry.next.offset;

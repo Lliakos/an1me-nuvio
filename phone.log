@@ -1,64 +1,33 @@
-=== LOG SESSION STARTED AT 13/6/2026, 3:15:53 μ.μ. ===
-[13/6/2026, 3:16:03 μ.μ.] [An1me] getStreams called | id=65942 type=tv s=1 ep=1
-[13/6/2026, 3:16:03 μ.μ.] [An1me] TMDB ID: "65942"
-[13/6/2026, 3:16:03 μ.μ.] [An1me] Dict hit: rezero-kara-hajimeru-isekai-seikatsu ep=1 (s=1)
-[13/6/2026, 3:16:03 μ.μ.] [An1me] Fetching: https://an1me.to/watch/rezero-kara-hajimeru-isekai-seikatsu-episode-1/
-[13/6/2026, 3:16:04 μ.μ.] [An1me] Page: 182185 bytes
-[13/6/2026, 3:16:04 μ.μ.] [An1me] Found 1 embed(s)
-[13/6/2026, 3:16:04 μ.μ.] [An1me] Embed[0]: Alpha Serversub | google=true | url=https://photos.google.com/share/AF1QipNeI7oaF5fqk1fGIFxfpiUFQA5JAlJfVq
-[13/6/2026, 3:16:04 μ.μ.] [An1me] Fetching kr-video page for: Alpha Serversub
-[13/6/2026, 3:16:04 μ.μ.] [An1me] kr-video page: 37521 bytes
-[13/6/2026, 3:16:04 μ.μ.] [An1me] kr-video: found 2 source(s)
-[13/6/2026, 3:16:04 μ.μ.] [An1me] Source: 720p | https://lh3.googleusercontent.com/pw/AP1GczPQvPbBSYJEtNg9hMOvDBLdy8fMcKQMKk_AAK5lv3WdmpFBb-N51iffcidhnENY-oJFxzq9gaA_ffDoOrWJCZC7K51pfASUS8-cso4y8_vzb0bNNg=m22
-[13/6/2026, 3:16:04 μ.μ.] [An1me] Source: 360p | https://lh3.googleusercontent.com/pw/AP1GczPQvPbBSYJEtNg9hMOvDBLdy8fMcKQMKk_AAK5lv3WdmpFBb-N51iffcidhnENY-oJFxzq9gaA_ffDoOrWJCZC7K51pfASUS8-cso4y8_vzb0bNNg=m18
-[13/6/2026, 3:16:04 μ.μ.] [An1me] Returning 2 stream(s)
-[13/6/2026, 3:16:20 μ.μ.] [An1me] getStreams called | id=65942 type=tv s=2 ep=1
-[13/6/2026, 3:16:20 μ.μ.] [An1me] TMDB ID: "65942"
-[13/6/2026, 3:16:20 μ.μ.] [An1me] Dict hit: rezero-kara-hajimeru-isekai-seikatsu-2nd-season ep=1 (s=2)
-[13/6/2026, 3:16:20 μ.μ.] [An1me] Fetching: https://an1me.to/watch/rezero-kara-hajimeru-isekai-seikatsu-2nd-season-episode-1/
-[13/6/2026, 3:16:21 μ.μ.] [An1me] Page: 178119 bytes
-[13/6/2026, 3:16:21 μ.μ.] [An1me] Found 1 embed(s)
-[13/6/2026, 3:16:21 μ.μ.] [An1me] Embed[0]: An1 Serversub | google=false | url=https://cdn.an1me.io/simple/rezero-kara-hajimeru-isekai-seikatsu-2nd-s
-[13/6/2026, 3:16:21 μ.μ.] [An1me] Direct CDN: An1 Serversub type=hls
-[13/6/2026, 3:16:21 μ.μ.] [An1me] Returning 1 stream(s)
-[13/6/2026, 3:16:31 μ.μ.] [An1me] getStreams called | id=65942 type=tv s=2 ep=1
-[13/6/2026, 3:16:31 μ.μ.] [An1me] TMDB ID: "65942"
-[13/6/2026, 3:16:31 μ.μ.] [An1me] Dict hit: rezero-kara-hajimeru-isekai-seikatsu-2nd-season ep=1 (s=2)
-[13/6/2026, 3:16:31 μ.μ.] [An1me] Fetching: https://an1me.to/watch/rezero-kara-hajimeru-isekai-seikatsu-2nd-season-episode-1/
-[13/6/2026, 3:16:32 μ.μ.] [An1me] Page: 178119 bytes
-[13/6/2026, 3:16:32 μ.μ.] [An1me] Found 1 embed(s)
-[13/6/2026, 3:16:32 μ.μ.] [An1me] Embed[0]: An1 Serversub | google=false | url=https://cdn.an1me.io/simple/rezero-kara-hajimeru-isekai-seikatsu-2nd-s
-[13/6/2026, 3:16:32 μ.μ.] [An1me] Direct CDN: An1 Serversub type=hls
-[13/6/2026, 3:16:32 μ.μ.] [An1me] Returning 1 stream(s)
-[13/6/2026, 3:17:13 μ.μ.] [An1me] getStreams called | id=65942 type=tv s=2 ep=14
-[13/6/2026, 3:17:13 μ.μ.] [An1me] TMDB ID: "65942"
-[13/6/2026, 3:17:13 μ.μ.] [An1me] Split: ep 14 > splitAfter 13 -> rezero-kara-hajimeru-isekai-seikatsu-2nd-season-part-2 ep 1
-[13/6/2026, 3:17:13 μ.μ.] [An1me] Dict hit: rezero-kara-hajimeru-isekai-seikatsu-2nd-season-part-2 ep=1 (s=2)
-[13/6/2026, 3:17:13 μ.μ.] [An1me] Fetching: https://an1me.to/watch/rezero-kara-hajimeru-isekai-seikatsu-2nd-season-part-2-episode-1/
-[13/6/2026, 3:17:13 μ.μ.] [An1me] Page: 177762 bytes
-[13/6/2026, 3:17:13 μ.μ.] [An1me] Found 1 embed(s)
-[13/6/2026, 3:17:13 μ.μ.] [An1me] Embed[0]: An1 Serversub | google=false | url=https://cdn.an1me.io/simple/rezero-kara-hajimeru-isekai-seikatsu-2nd-s
-[13/6/2026, 3:17:13 μ.μ.] [An1me] Direct CDN: An1 Serversub type=hls
-[13/6/2026, 3:17:13 μ.μ.] [An1me] Returning 1 stream(s)
-[13/6/2026, 3:18:06 μ.μ.] [An1me] getStreams called | id=65942 type=tv s=3 ep=14
-[13/6/2026, 3:18:06 μ.μ.] [An1me] TMDB ID: "65942"
-[13/6/2026, 3:18:06 μ.μ.] [An1me] Dict hit: rezero-kara-hajimeru-isekai-seikatsu-3rd-season ep=14 (s=3)
-[13/6/2026, 3:18:06 μ.μ.] [An1me] Fetching: https://an1me.to/watch/rezero-kara-hajimeru-isekai-seikatsu-3rd-season-episode-14/
-[13/6/2026, 3:18:07 μ.μ.] [An1me] Page: 179614 bytes
-[13/6/2026, 3:18:07 μ.μ.] [An1me] Found 2 embed(s)
-[13/6/2026, 3:18:07 μ.μ.] [An1me] Embed[0]: C Serversub | google=false | url=https://collect.wetransfer.com/board/sl10f3q1l408c3wzs20250105225701/s
-[13/6/2026, 3:18:07 μ.μ.] [An1me] Direct CDN: C Serversub type=mp4
-[13/6/2026, 3:18:07 μ.μ.] [An1me] Embed[1]: An1 Serversub | google=false | url=https://cdn.an1me.io/simple/rezero-kara-hajimeru-isekai-seikatsu-3rd-s
-[13/6/2026, 3:18:07 μ.μ.] [An1me] Direct CDN: An1 Serversub type=hls
-[13/6/2026, 3:18:07 μ.μ.] [An1me] Returning 2 stream(s)
-[13/6/2026, 3:18:28 μ.μ.] [An1me] getStreams called | id=65942 type=tv s=4 ep=8
-[13/6/2026, 3:18:28 μ.μ.] [An1me] TMDB ID: "65942"
-[13/6/2026, 3:18:28 μ.μ.] [An1me] Dict hit: rezero-kara-hajimeru-isekai-seikatsu-4th-season ep=8 (s=4)
-[13/6/2026, 3:18:28 μ.μ.] [An1me] Fetching: https://an1me.to/watch/rezero-kara-hajimeru-isekai-seikatsu-4th-season-episode-8/
-[13/6/2026, 3:18:29 μ.μ.] [An1me] Page: 185234 bytes
-[13/6/2026, 3:18:29 μ.μ.] [An1me] Found 2 embed(s)
-[13/6/2026, 3:18:29 μ.μ.] [An1me] Embed[0]: C Serversub | google=false | url=https://collect.wetransfer.com/board/s435e4oxn5215p6dy20260409064444/s
-[13/6/2026, 3:18:29 μ.μ.] [An1me] Direct CDN: C Serversub type=mp4
-[13/6/2026, 3:18:29 μ.μ.] [An1me] Embed[1]: An1 Serversub | google=false | url=https://cdn.an1me.io/simple/rezero-kara-hajimeru-isekai-seikatsu-4th-s
-[13/6/2026, 3:18:29 μ.μ.] [An1me] Direct CDN: An1 Serversub type=hls
-[13/6/2026, 3:18:29 μ.μ.] [An1me] Returning 2 stream(s)
+=== LOG SESSION STARTED AT 13/6/2026, 3:23:58 μ.μ. ===
+[13/6/2026, 3:24:01 μ.μ.] [An1me] Fetching: https://an1me.to/watch/rezero-kara-hajimeru-isekai-seikatsu-episode-3/
+[13/6/2026, 3:24:01 μ.μ.] [An1me] Page: 182233 bytes
+[13/6/2026, 3:24:01 μ.μ.] [An1me] Found 1 embed(s)
+[13/6/2026, 3:24:01 μ.μ.] [An1me] Embed[0]: Alpha Serversub | google=true | url=https://photos.google.com/share/AF1QipNeI7oaF5fqk1fGIFxfpiUFQA5JAlJfVq
+[13/6/2026, 3:24:01 μ.μ.] [An1me] Fetching kr-video page for: Alpha Serversub
+[13/6/2026, 3:24:01 μ.μ.] [An1me] kr-video page: 37521 bytes
+[13/6/2026, 3:24:01 μ.μ.] [An1me] kr-video: found 2 source(s)
+[13/6/2026, 3:24:01 μ.μ.] [An1me] Source: 720p | https://lh3.googleusercontent.com/pw/AP1GczONBx9VvW4ESSxdsaKN7fL9O8qjy1OL9TDTSj28s3pAqfCSnvUlKWyOcq7N8k-gwhq8DCL6s2mr0jMVhCk9vMKmrxp4md7CM8tHEuVlxO4gZyzklg=m22
+[13/6/2026, 3:24:01 μ.μ.] [An1me] Source: 360p | https://lh3.googleusercontent.com/pw/AP1GczONBx9VvW4ESSxdsaKN7fL9O8qjy1OL9TDTSj28s3pAqfCSnvUlKWyOcq7N8k-gwhq8DCL6s2mr0jMVhCk9vMKmrxp4md7CM8tHEuVlxO4gZyzklg=m18
+[13/6/2026, 3:24:01 μ.μ.] [An1me] Returning 2 stream(s)
+[13/6/2026, 3:24:01 μ.μ.] [An1me] Page: 182233 bytes
+[13/6/2026, 3:24:01 μ.μ.] [An1me] Found 1 embed(s)
+[13/6/2026, 3:24:01 μ.μ.] [An1me] Embed[0]: Alpha Serversub | google=true | url=https://photos.google.com/share/AF1QipNeI7oaF5fqk1fGIFxfpiUFQA5JAlJfVq
+[13/6/2026, 3:24:01 μ.μ.] [An1me] Fetching kr-video page for: Alpha Serversub
+[13/6/2026, 3:24:01 μ.μ.] [An1me] kr-video page: 37521 bytes
+[13/6/2026, 3:24:01 μ.μ.] [An1me] kr-video: found 2 source(s)
+[13/6/2026, 3:24:02 μ.μ.] [An1me] Source: 720p | https://lh3.googleusercontent.com/pw/AP1GczONBx9VvW4ESSxdsaKN7fL9O8qjy1OL9TDTSj28s3pAqfCSnvUlKWyOcq7N8k-gwhq8DCL6s2mr0jMVhCk9vMKmrxp4md7CM8tHEuVlxO4gZyzklg=m22
+[13/6/2026, 3:24:02 μ.μ.] [An1me] Source: 360p | https://lh3.googleusercontent.com/pw/AP1GczONBx9VvW4ESSxdsaKN7fL9O8qjy1OL9TDTSj28s3pAqfCSnvUlKWyOcq7N8k-gwhq8DCL6s2mr0jMVhCk9vMKmrxp4md7CM8tHEuVlxO4gZyzklg=m18
+[13/6/2026, 3:24:02 μ.μ.] [An1me] Returning 2 stream(s)
+[13/6/2026, 3:24:04 μ.μ.] [An1me] getStreams called | id=65942 type=tv s=1 ep=3
+[13/6/2026, 3:24:04 μ.μ.] [An1me] TMDB ID: "65942"
+[13/6/2026, 3:24:04 μ.μ.] [An1me] Dict hit: rezero-kara-hajimeru-isekai-seikatsu ep=3 (s=1)
+[13/6/2026, 3:24:04 μ.μ.] [An1me] Fetching: https://an1me.to/watch/rezero-kara-hajimeru-isekai-seikatsu-episode-3/
+[13/6/2026, 3:24:05 μ.μ.] [An1me] Page: 182233 bytes
+[13/6/2026, 3:24:05 μ.μ.] [An1me] Found 1 embed(s)
+[13/6/2026, 3:24:05 μ.μ.] [An1me] Embed[0]: Alpha Serversub | google=true | url=https://photos.google.com/share/AF1QipNeI7oaF5fqk1fGIFxfpiUFQA5JAlJfVq
+[13/6/2026, 3:24:05 μ.μ.] [An1me] Fetching kr-video page for: Alpha Serversub
+[13/6/2026, 3:24:05 μ.μ.] [An1me] kr-video page: 37521 bytes
+[13/6/2026, 3:24:05 μ.μ.] [An1me] kr-video: found 2 source(s)
+[13/6/2026, 3:24:05 μ.μ.] [An1me] Source: 720p | https://lh3.googleusercontent.com/pw/AP1GczONBx9VvW4ESSxdsaKN7fL9O8qjy1OL9TDTSj28s3pAqfCSnvUlKWyOcq7N8k-gwhq8DCL6s2mr0jMVhCk9vMKmrxp4md7CM8tHEuVlxO4gZyzklg=m22
+[13/6/2026, 3:24:05 μ.μ.] [An1me] Source: 360p | https://lh3.googleusercontent.com/pw/AP1GczONBx9VvW4ESSxdsaKN7fL9O8qjy1OL9TDTSj28s3pAqfCSnvUlKWyOcq7N8k-gwhq8DCL6s2mr0jMVhCk9vMKmrxp4md7CM8tHEuVlxO4gZyzklg=m18
+[13/6/2026, 3:24:05 μ.μ.] [An1me] Returning 2 stream(s)
